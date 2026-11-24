@@ -2,7 +2,7 @@
 // Google OAuth app as Alumni Connect and Tether), or a labelled dev sign-in when Google is not configured. Sessions are HMAC-signed cookies; users live in the AI database.
 import { Router } from 'express';
 import crypto from 'node:crypto';
-import { appPool } from '../../appDb.js';
+import { appPool, appWrite } from '../../appDb.js';
 import { allRules, invalidateRules } from '../../access.js';
 import * as employees from '../../employees.js';
 
@@ -41,7 +41,16 @@ function setSession(res, user) {
 }
 
 export const isSuperAdmin = (user) => !!user && superAdmins().includes(String(user.email).toLowerCase());
-const publicUser = (u) => u && { id: u.id, email: u.email, name: u.name, role: u.role, isSuperAdmin: isSuperAdmin(u) };
+const publicUser = (u) => u && { id: u.id, email: u.email, name: u.name, role: u.role, picture: u.picture_url || null, isSuperAdmin: isSuperAdmin(u) };
+
+// Remembers the Google profile picture seen at sign-in (migration 009). Only an https address is kept; a
+// missing column or a failed write never stops the sign-in.
+async function rememberPicture(user, picture) {
+  const url = typeof picture === 'string' && /^https:\/\/[^\s"'<>]+$/.test(picture) && picture.length <= 1024 ? picture : null;
+  if (!url || !user?.id) return user;
+  await appWrite('UPDATE users SET picture_url = ? WHERE id = ?', [url, user.id]);
+  return { ...user, picture_url: url };
+}
 
 // Signing in with an organisation account is not enough (same rule as Alumni Connect): a person must have been
 // added in Admin > Access, or be a super admin. Nobody gets a users row just by signing in.
@@ -151,6 +160,7 @@ router.get('/google/callback', async (req, res) => {
     if (!email || !info.email_verified || email.split('@')[1] !== allowedDomain()) return deny('wrong_domain');
     let user;
     try { user = await upsertUser(email, info.name); } catch (err) { if (err.reason) return deny(err.reason); throw err; }
+    user = await rememberPicture(user, info.picture);
     const token = makeToken({ uid: user.id, exp: Date.now() + SESSION_DAYS * 864e5 });
     res.setHeader('Set-Cookie', [
       stateCookie('', 0),
@@ -207,6 +217,7 @@ router.get('/sso', async (req, res) => {
     if (!email || email.split('@')[1] !== allowedDomain()) return deny('wrong_domain');
     let user;
     try { user = await upsertUser(email, payload.name); } catch (err) { if (err.reason) return deny(err.reason); throw err; }
+    user = await rememberPicture(user, payload.picture);
     setSession(res, user);
     res.redirect(`${frontendUrl()}/`);
   } catch (err) {
