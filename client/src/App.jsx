@@ -374,6 +374,9 @@ function ChatApp({ user, onLogout }) {
           ))}
         </div>
 
+        <div className="sidebar-user">
+          <UserChip user={user} quota={quota} credits={credits} onLogout={onLogout} adminOpen={adminOpen} onAdmin={() => { setAdminOpen((o) => !o); loadQuota(); loadCredits() }} onPreferences={() => setPrefsOpen(true)} />
+        </div>
       </aside>
 
       <main className="main">
@@ -413,7 +416,6 @@ function ChatApp({ user, onLogout }) {
           {!adminOpen && (routing
             ? <div className="model-pill" title={`Lookups: ${MODEL_LABELS[routing.lookup] || routing.lookup}\nAggregates: ${MODEL_LABELS[routing.aggregate] || routing.aggregate}\nAnalysis: ${MODEL_LABELS[routing.analysis] || routing.analysis}`}>Auto · {(MODEL_LABELS[routing.lookup] || routing.lookup).replace('Claude ', '')} → {(MODEL_LABELS[routing.analysis] || routing.analysis).replace('Claude ', '')}</div>
             : <div className="model-pill" title={modelId}>{MODEL_LABELS[modelId] || modelId || "Model"}</div>)}
-          <UserChip user={user} quota={quota} credits={credits} onLogout={onLogout} adminOpen={adminOpen} onAdmin={() => { setAdminOpen((o) => !o); loadQuota(); loadCredits() }} onPreferences={() => setPrefsOpen(true)} />
         </header>
         {(() => {
           const last = activeMessages[activeMessages.length - 1]

@@ -221,7 +221,12 @@
 .send.wide { width: 100%; height: 46px; border-radius: 10px; font-weight: 600; }
 
 /* ---------- User chip ---------- */
-.user-chip { margin-left: auto; display: flex; align-items: center; gap: 10px; font-size: 12px; white-space: nowrap; padding-left: 12px; border-left: 1px solid var(--border); }
+/* The user block sits at the bottom of the sidebar (user request, 24 Nov 2026). */
+.sidebar-user { margin-top: auto; padding: 12px 14px 14px; border-top: 1px solid var(--border); }
+.user-chip { display: flex; flex-direction: column; gap: 7px; font-size: 12px; min-width: 0; }
+.user-line { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; min-width: 0; }
+.user-links { gap: 4px 14px; padding-top: 2px; }
+.user-links .link-btn { font-size: 12.5px; }
 .user-email { font-weight: 600; max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
 .role-pill { font-size: 11px; text-transform: capitalize; background: var(--sidebar); border-radius: 999px; padding: 2px 9px; color: var(--muted); }
 .role-pill.admin { color: var(--text); background: var(--mark); }
@@ -289,7 +294,6 @@
 .topbar { flex-wrap: wrap; row-gap: 6px; }
 .topbar-title { flex: 1 1 160px; min-width: 0; }
 .glossary-pane { flex: 1; max-height: none; }
-@media (max-width: 720px) { .user-chip { margin-left: 0; border-left: none; padding-left: 0; flex: 1 1 100%; flex-wrap: wrap; row-gap: 4px; } }
 
 /* ---------- Settings panel ---------- */
 .settings-card { padding: 0; overflow: hidden; }

@@ -94,13 +94,21 @@ export function UserChip({ user, quota, credits, onLogout, onAdmin, adminOpen, o
   const low = quota && ((quota.remaining.day != null && quota.remaining.day <= 3) || (quota.remaining.hour != null && quota.remaining.hour <= 2))
   return (
     <div className="user-chip">
-      <span className="user-email" title={user.email}>{user.name || user.email}</span>
-      {quota && <span className={`quota-line ${low ? 'low' : ''}`} title="Your prompt allowance">{quotaLabel(quota)}</span>}
-      {credits && <span className={`quota-line ${credits.balance <= credits.granted * 0.1 ? 'low' : ''}`} title={`$${credits.spent.toFixed(2)} used of $${credits.granted.toFixed(2)}`}>{credits.balance <= 0 ? 'Credits over' : `$${credits.balance.toFixed(2)} credit left`}</span>}
-      <span className={`role-pill ${user.role}`}>{user.isSuperAdmin ? 'super admin' : user.role}</span>
-      <button type="button" className="link-btn" onClick={onPreferences}>Preferences</button>
-      {user.role === 'admin' && <button type="button" className={`link-btn ${adminOpen ? 'on' : ''}`} onClick={onAdmin}>{adminOpen ? 'Back to chat' : 'Admin'}</button>}
-      <button type="button" className="link-btn" onClick={onLogout}>Sign out</button>
+      <div className="user-line">
+        <span className="user-email" title={user.email}>{user.name || user.email}</span>
+        <span className={`role-pill ${user.role}`}>{user.isSuperAdmin ? 'super admin' : user.role}</span>
+      </div>
+      {(quota || credits) && (
+        <div className="user-line">
+          {quota && <span className={`quota-line ${low ? 'low' : ''}`} title="Your prompt allowance">{quotaLabel(quota)}</span>}
+          {credits && <span className={`quota-line ${credits.balance <= credits.granted * 0.1 ? 'low' : ''}`} title={`$${credits.spent.toFixed(2)} used of $${credits.granted.toFixed(2)}`}>{credits.balance <= 0 ? 'Credits over' : `$${credits.balance.toFixed(2)} credit left`}</span>}
+        </div>
+      )}
+      <div className="user-line user-links">
+        <button type="button" className="link-btn" onClick={onPreferences}>Preferences</button>
+        {user.role === 'admin' && <button type="button" className={`link-btn ${adminOpen ? 'on' : ''}`} onClick={onAdmin}>{adminOpen ? 'Back to chat' : 'Admin'}</button>}
+        <button type="button" className="link-btn" onClick={onLogout}>Sign out</button>
+      </div>
     </div>
   )
 }
