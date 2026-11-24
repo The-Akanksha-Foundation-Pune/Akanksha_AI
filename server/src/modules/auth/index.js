@@ -15,6 +15,13 @@ const superAdmins = () => (process.env.SUPER_ADMIN_EMAILS || 'nikhil.aher@akanks
 const googleClientId = () => process.env.GOOGLE_CLIENT_ID || '';
 const googleClientSecret = () => process.env.GOOGLE_CLIENT_SECRET || '';
 const frontendUrl = () => (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/+$/, '');
+// Where "Back to Tether" goes: TETHER_URL if set; otherwise, when this app is served under a path of another
+// site (production: https://tether.akanksha.org/akanksha-ai), that site's home. Empty = no button.
+function tetherUrl() {
+  const set = (process.env.TETHER_URL || '').trim().replace(/\/+$/, '');
+  if (/^https?:\/\//.test(set)) return set;
+  try { const u = new URL(frontendUrl()); return u.pathname.replace(/\/+$/, '') ? u.origin : ''; } catch { return ''; }
+}
 // Must be listed under "Authorised redirect URIs" on the Google OAuth client.
 const googleCallbackUrl = () => process.env.GOOGLE_CALLBACK_URL || `${frontendUrl()}/api/modules/auth/google/callback`;
 const authMode = () => (googleClientId() && googleClientSecret() ? 'google' : (process.env.AUTH_MODE || 'dev'));
@@ -111,7 +118,7 @@ const router = Router();
 router.get('/me', async (req, res) => {
   const payload = readToken(parseCookies(req)[COOKIE]);
   const user = payload ? await userById(payload.uid).catch(() => null) : null;
-  res.json({ user: publicUser(user), mode: authMode(), domain: allowedDomain() });
+  res.json({ user: publicUser(user), mode: authMode(), domain: allowedDomain(), tetherUrl: tetherUrl() });
 });
 
 // ---- Google sign-in: plain OAuth 2.0 code flow, as in Alumni Connect ----

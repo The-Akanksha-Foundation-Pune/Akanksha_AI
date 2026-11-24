@@ -68,6 +68,7 @@ try {
   }
   const me = await get('/api/modules/auth/me');
   check('/api/modules/auth/me answers with no user', me.status === 200 && !me.json?.user, me.text.slice(0, 200));
+  if (process.env.TETHER_URL) check('the Back to Tether address comes from TETHER_URL', me.json?.tetherUrl === process.env.TETHER_URL.replace(/\/+$/, ''), me.text.slice(0, 200));
 
   // 5. Signed in (throwaway database only)
   if (process.env.SMOKE_SIGNIN === '1') {

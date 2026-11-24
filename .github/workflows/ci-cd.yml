@@ -74,6 +74,7 @@ jobs:
       JWT_SECRET: ci-not-a-real-secret
       INTEGRATION_JWT_SECRET: ci-not-tethers-secret
       CLIENT_URL: http://localhost:5173
+      TETHER_URL: https://tether.example.org/
       AUTH_MODE: dev
       AUTH_ALLOWED_DOMAIN: example.org
       SUPER_ADMIN_EMAILS: ci-admin@example.org

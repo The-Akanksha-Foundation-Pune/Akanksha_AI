@@ -46,10 +46,10 @@ export default function App() {
   useEffect(() => { fetchMe().then(setAuth) }, [])
   if (!auth) return <div className="signin"><div className="muted">Loading…</div></div>
   if (!auth.user) return <SignIn info={auth} onSignedIn={(user) => setAuth({ ...auth, user })} />
-  return <ChatApp key={auth.user.id} user={auth.user} onLogout={async () => { await logout(); setAuth({ ...auth, user: null }) }} />
+  return <ChatApp key={auth.user.id} user={auth.user} tetherUrl={auth.tetherUrl} onLogout={async () => { await logout(); setAuth({ ...auth, user: null }) }} />
 }
 
-function ChatApp({ user, onLogout }) {
+function ChatApp({ user, tetherUrl, onLogout }) {
   const [adminOpen, setAdminOpen] = useState(false)
   const [prefsOpen, setPrefsOpen] = useState(false)
   const [quota, setQuota] = useState(null)
@@ -416,6 +416,7 @@ function ChatApp({ user, onLogout }) {
           {!adminOpen && (routing
             ? <div className="model-pill" title={`Lookups: ${MODEL_LABELS[routing.lookup] || routing.lookup}\nAggregates: ${MODEL_LABELS[routing.aggregate] || routing.aggregate}\nAnalysis: ${MODEL_LABELS[routing.analysis] || routing.analysis}`}>Auto · {(MODEL_LABELS[routing.lookup] || routing.lookup).replace('Claude ', '')} → {(MODEL_LABELS[routing.analysis] || routing.analysis).replace('Claude ', '')}</div>
             : <div className="model-pill" title={modelId}>{MODEL_LABELS[modelId] || modelId || "Model"}</div>)}
+          {tetherUrl && <a className="action-btn tether-back" href={tetherUrl} title="Return to the Tether home page">← Back to Tether</a>}
         </header>
         {(() => {
           const last = activeMessages[activeMessages.length - 1]
