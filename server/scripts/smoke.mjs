@@ -123,12 +123,13 @@ try {
     const domain = admin.split('@')[1];
     const refused = (r, reason) => r.status === 302 && r.to.endsWith(`/?signin=${reason}`) && !r.cookie;
 
-    const good = mint({ email: admin, name: 'CI' });
+    const good = mint({ email: admin, name: 'CI', picture: 'https://lh3.googleusercontent.com/a/ci-picture=s96-c' });
     const first = await sso(good);
     check('Tether token for an invited person opens a session', first.status === 302 && first.to.endsWith('/') && !first.to.includes('signin=') && first.cookie.startsWith('akai_session='), JSON.stringify(first));
     if (first.cookie) {
       const who = await get('/api/modules/auth/me', { Cookie: first.cookie });
       check('that session belongs to the person in the token', who.json?.user?.email === admin, who.text.slice(0, 200));
+      check('the profile picture from the token is remembered', who.json?.user?.picture === 'https://lh3.googleusercontent.com/a/ci-picture=s96-c', who.text.slice(0, 200));
     }
     check('the same Tether token does not work twice', refused(await sso(good), 'sso_used'));
     check('a token signed with another secret is refused', refused(await sso(mint({ email: admin }, { key: 'some-other-secret' })), 'sso_invalid'));
@@ -140,6 +141,9 @@ try {
     check('a token for someone without access is refused', refused(await sso(mint({ email: `not-invited@${domain}` })), 'no_access'));
     check('a token for another organisation is refused', refused(await sso(mint({ email: 'ci-admin@elsewhere.example' })), 'wrong_domain'));
     check('a request with no token is refused', refused(await sso(''), 'sso_invalid'));
+    const odd = await sso(mint({ email: admin, picture: 'javascript:alert(1)' }));
+    const oddWho = odd.cookie ? await get('/api/modules/auth/me', { Cookie: odd.cookie }) : null;
+    check('a picture that is not an https address is ignored', oddWho?.json?.user?.picture === 'https://lh3.googleusercontent.com/a/ci-picture=s96-c', oddWho?.text?.slice(0, 200));
   }
 
   // 7. Client page

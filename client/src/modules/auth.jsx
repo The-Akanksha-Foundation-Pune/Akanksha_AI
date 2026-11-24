@@ -90,11 +90,20 @@ export function quotaLabel(q) {
   return parts.join(' · ') + (limits.source === 'user' ? ' (personal limit)' : '')
 }
 
+// The person's Google profile picture; their initials when there is none yet or it does not load.
+function Avatar({ user }) {
+  const [broken, setBroken] = useState(false)
+  const initials = String(user.name || user.email || '?').split(/[\s.@]+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('')
+  if (user.picture && !broken) return <img className="avatar" src={user.picture} alt="" referrerPolicy="no-referrer" onError={() => setBroken(true)} />
+  return <span className="avatar initials" aria-hidden="true">{initials}</span>
+}
+
 export function UserChip({ user, quota, credits, onLogout, onAdmin, adminOpen, onPreferences }) {
   const low = quota && ((quota.remaining.day != null && quota.remaining.day <= 3) || (quota.remaining.hour != null && quota.remaining.hour <= 2))
   return (
     <div className="user-chip">
       <div className="user-line">
+        <Avatar user={user} />
         <span className="user-email" title={user.email}>{user.name || user.email}</span>
         <span className={`role-pill ${user.role}`}>{user.isSuperAdmin ? 'super admin' : user.role}</span>
       </div>
