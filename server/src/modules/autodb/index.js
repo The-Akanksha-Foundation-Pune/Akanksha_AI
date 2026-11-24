@@ -8,6 +8,7 @@ import { listDatabases, defaultDatabase } from '../../db.js';
 import { loadSchema } from '../../schema.js';
 import { getSetting } from '../../appDb.js';
 import { filterDatabases, allowedTableSet } from '../../access.js';
+import { rulesText } from '../../rules.js';
 
 const client = new Anthropic();
 const MAX_TABLES_PER_DB = 80;
@@ -19,7 +20,7 @@ const catalogs = new Map(); // role -> { at, names, text }
 // 16 Nov 2026; the rest inferred the same day from table names, row counts and last-update times. Inferred lines are
 // a best reading, not confirmed by the data owners: correct them here when one is wrong.
 const DB_HINTS = {
-  AFDW: 'main data warehouse and the current source for schools, students, enrolment, attendance and assessments (BOY/MOY/EOY, RAZ); attendance covers 2023-24 onwards; use it for any school or student question about those years or with no year given',
+  AFDW: 'main data warehouse and the current source for schools, students, enrolment, attendance and assessments (BOY/MOY/EOY, RAZ); attendance covers 2023-24 onwards; use it for any school or student question about those years or with no year given; its consultant_* tables are old copies, never use it for consultant questions',
   tether_forms: 'IT visit forms submitted by the technology team, plus the employees list (HR master: department, designation, joining date, manager)',
   Netsuite: 'historical student and attendance records from 2003-04 to 2023-24; use it only for attendance or student questions about academic years before 2023-24',
   akanksha_production: 'live alumni tracking: alumni profiles, college and course by year, graduation, employment and income after school; no school assessments or attendance',
@@ -30,7 +31,7 @@ const DB_HINTS = {
   IT_helpdesk: 'IT helpdesk tickets with status, assignment, turnaround (TAT) events and SLA settings, plus the school-to-engineer mapping',
   TimeTable: 'school timetables: teachers, subjects, classes, period slots and teacher assignments per school',
   fams_mysql_dev: 'fixed asset management (development database): assets with IT details, locations, allocations, movements, repairs and verification cycles',
-  consultant_mgmt: 'consultant management: consultants, engagements and rates, work reports, invoices and approvals',
+  consultant_mgmt: 'consultant management, and the only source for any question about consultants: consultants, engagements and rates, work reports, invoices and approvals',
   consultant_mgmt_test: 'test copy of consultant management with almost no data; do not use unless the question names it',
   dr_workspace: 'donor relations workspace: donors and their contacts, commitments, interactions, tasks and compliance documents',
   events_app: 'events calendar app (event types, cost centres, donor notifications); holds almost no event data yet',
@@ -91,7 +92,10 @@ export async function pickDatabase(user, question, { current = '', previous = ''
           `A follow-up that refines, breaks down, corrects or continues the previous question stays on ${staying}, as does anything short or ambiguous. ` +
           `Reply with another database only when the new question is clearly about a different kind of data that ${staying} does not hold. `
         : '') +
-      `If none clearly fits, reply with ${fallback}.\n\n${text}`,
+      `If none clearly fits, reply with ${fallback}.` +
+      // server/prompts/RULES.md: the data owners' rules. They beat descriptions, table names and staying put.
+      (rulesText() ? `\n\nRules from the data owners. A rule that names a database for a topic decides the answer, even for a follow-up, as long as that database is listed below:\n${rulesText()}` : '') +
+      `\n\n${text}`,
     messages: [{ role: 'user', content: String(question).slice(0, 1500) }],
   });
   const answer = (r.content.find((b) => b.type === 'text')?.text || '').trim();
