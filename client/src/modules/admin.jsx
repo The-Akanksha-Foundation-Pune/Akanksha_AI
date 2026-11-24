@@ -187,7 +187,7 @@ export default function AdminPage({ user, databases }) {
       <SettingsPanel canEdit={user.isSuperAdmin} onSaved={load} />
 
       <div className="admin-grid">
-        <Section title="Access" note={user.isSuperAdmin ? `Only people listed here can sign in to Akanksha AI; everyone else is told they have no access yet. Pick a team, then the person, to add them. Untick Active to remove someone's access. Super admins always stay admins. ${userQuotas ? 'Prompt columns override the role limit for one person; blank means the role limit, 0 means unlimited.' : 'Per-user prompt limits appear after migration 003 is applied.'}` : 'Only people listed here can sign in. Only a super admin can add people or change roles.'}>
+        <Section title="Access" note={user.isSuperAdmin ? `Only people listed here can sign in to Prism; everyone else is told they have no access yet. Pick a team, then the person, to add them. Untick Active to remove someone's access. Super admins always stay admins. ${userQuotas ? 'Prompt columns override the role limit for one person; blank means the role limit, 0 means unlimited.' : 'Per-user prompt limits appear after migration 003 is applied.'}` : 'Only people listed here can sign in. Only a super admin can add people or change roles.'}>
           {user.isSuperAdmin && <GiveAccess users={users} roles={roles} onChanged={load} />}
           <Table cols={[
             { k: 'email', h: 'Email' }, { k: 'name', h: 'Name', title: (r) => r.designation || '' }, { k: 'team', h: 'Team', f: (r) => r.team || <span className="muted">–</span>, title: (r) => (r.added_by ? `Added by ${r.added_by}` : '') },

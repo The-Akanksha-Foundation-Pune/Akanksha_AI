@@ -8,7 +8,7 @@ import { appPool, appWrite, getNumberSetting } from '../../appDb.js';
 import { requireRole, requireSuperAdmin } from '../auth/index.js';
 
 const DEFAULTS = { analyst: 5, viewer: 2 };
-export const OVER_MESSAGE = 'Your credits are over. Please ask an admin to add more credits to keep using Akanksha AI.';
+export const OVER_MESSAGE = 'Your credits are over. Please ask an admin to add more credits to keep using Prism.';
 
 let columns = null;
 export async function hasCreditColumns() {

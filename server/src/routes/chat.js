@@ -13,7 +13,7 @@ const router = Router();
 const client = new Anthropic();
 
 const currentModel = async () => process.env.CLAUDE_MODEL || (await getSetting('default_model', 'claude-opus-5-5'));
-const BASE_PROMPT = 'You are Akanksha AI, a data assistant for the Akanksha Foundation team.';
+const BASE_PROMPT = 'You are Prism, a data assistant for the Akanksha Foundation team.';
 
 const ROUND_LIMIT_NOTE =
   '[System note: the query limit for this question is reached and no more queries can run. Answer now from the results above. ' +

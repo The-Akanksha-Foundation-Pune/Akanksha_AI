@@ -45,7 +45,7 @@ const publicUser = (u) => u && { id: u.id, email: u.email, name: u.name, role: u
 
 // Signing in with an organisation account is not enough (same rule as Alumni Connect): a person must have been
 // added in Admin > Access, or be a super admin. Nobody gets a users row just by signing in.
-const NO_ACCESS = 'You have not been given access to Akanksha AI yet. Ask an admin to add you under Admin > Access.';
+const NO_ACCESS = 'You have not been given access to Prism yet. Ask an admin to add you under Admin > Access.';
 function refuse(code, message) { const err = new Error(message); err.reason = code; return err; }
 
 async function upsertUser(email, name) {
