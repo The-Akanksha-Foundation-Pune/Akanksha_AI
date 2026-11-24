@@ -16,11 +16,16 @@ import './App.css'
 const STORAGE_KEY = 'akanksha_ai_conversations'
 const MODEL_LABELS = { 'claude-sonnet-5-5': 'Claude Sonnet 5.5', 'claude-opus-5-5': 'Claude Opus 5.5', 'claude-haiku-5-5': 'Claude Haiku 5.5', 'claude-fable-5-1': 'Claude Fable 5.1' }
 
+// Starter questions on the empty chat (user request, 24 Nov 2026): real analysis questions on assessments,
+// attendance, RAZ and IT visits, not schema lookups. Each names its measure and period so it can be answered
+// without a clarifying question; update the years when a new academic year starts.
 const SUGGESTIONS = [
-  'Which tables have the most rows?',
-  'How many students are enrolled per school?',
-  'Show the 10 most recent finance entries',
-  'Describe the columns in the epv table',
+  'Compare each school\'s MOY results with the previous year\'s MOY, subject by subject, and rank schools by improvement',
+  'Which schools\' attendance fell the most between August and October 2026? Show the monthly attendance for each',
+  'In the MOY 2026-2027 RAZ assessment, what share of students in each grade are below their expected level, by school?',
+  'Which schools have had no IT visit in the last 30 days, and which device issues came up most in visits this year?',
+  'Do students with attendance below 75% this year score lower on RAZ accuracy and comprehension than the rest? Compare by grade',
+  'Where is the gap between girls and boys widest in the latest MOY assessment? Break it down by grade and subject',
 ]
 
 const uid = () => Math.random().toString(36).slice(2, 10)
