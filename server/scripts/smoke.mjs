@@ -9,6 +9,7 @@
 // CI runs it against a throwaway MySQL (see .github/workflows/ci-cd.yml). SMOKE_SIGNIN creates a user
 // row, so never set it against the real AI database.
 import { spawn } from 'node:child_process';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -87,7 +88,42 @@ try {
     check('someone who was not given access is refused', stranger.status === 403, `status ${stranger.status}`);
   }
 
-  // 6. Client page
+  // 6. Sign-in from Tether (throwaway database only): a token as Tether's jwt.sign() makes it
+  if (process.env.SMOKE_SIGNIN === '1' && process.env.INTEGRATION_JWT_SECRET) {
+    const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
+    const mint = (claims, { key = process.env.INTEGRATION_JWT_SECRET, alg = 'HS256', ttl = 600 } = {}) => {
+      const now = Math.floor(Date.now() / 1000);
+      const data = `${b64({ alg, typ: 'JWT' })}.${b64({ iat: now, exp: now + ttl, timestamp: Date.now(), ...claims })}`;
+      return `${data}.${alg === 'none' ? '' : crypto.createHmac('sha256', key).update(data).digest('base64url')}`;
+    };
+    const sso = async (token) => {
+      const r = await fetch(`${base}/api/modules/auth/sso?token=${encodeURIComponent(token)}`, { redirect: 'manual' });
+      return { status: r.status, to: r.headers.get('location') || '', cookie: (r.headers.get('set-cookie') || '').split(';')[0] };
+    };
+    const admin = (process.env.SUPER_ADMIN_EMAILS || '').split(',')[0].trim();
+    const domain = admin.split('@')[1];
+    const refused = (r, reason) => r.status === 302 && r.to.endsWith(`/?signin=${reason}`) && !r.cookie;
+
+    const good = mint({ email: admin, name: 'CI' });
+    const first = await sso(good);
+    check('Tether token for an invited person opens a session', first.status === 302 && first.to.endsWith('/') && !first.to.includes('signin=') && first.cookie.startsWith('akai_session='), JSON.stringify(first));
+    if (first.cookie) {
+      const who = await get('/api/modules/auth/me', { Cookie: first.cookie });
+      check('that session belongs to the person in the token', who.json?.user?.email === admin, who.text.slice(0, 200));
+    }
+    check('the same Tether token does not work twice', refused(await sso(good), 'sso_used'));
+    check('a token signed with another secret is refused', refused(await sso(mint({ email: admin }, { key: 'some-other-secret' })), 'sso_invalid'));
+    check('an unsigned token (alg none) is refused', refused(await sso(mint({ email: admin }, { alg: 'none' })), 'sso_invalid'));
+    const edited = mint({ email: `someone-else@${domain}` }).split('.');
+    edited[1] = b64({ email: admin, exp: Math.floor(Date.now() / 1000) + 600 });
+    check('a token whose contents were edited is refused', refused(await sso(edited.join('.')), 'sso_invalid'));
+    check('an expired token is refused', refused(await sso(mint({ email: admin }, { ttl: -60 })), 'sso_expired'));
+    check('a token for someone without access is refused', refused(await sso(mint({ email: `not-invited@${domain}` })), 'no_access'));
+    check('a token for another organisation is refused', refused(await sso(mint({ email: 'ci-admin@elsewhere.example' })), 'wrong_domain'));
+    check('a request with no token is refused', refused(await sso(''), 'sso_invalid'));
+  }
+
+  // 7. Client page
   if (process.env.SERVE_CLIENT === '1') {
     const home = await get('/');
     check('/ serves the client page', home.status === 200 && /<div id="root">/.test(home.text), `status ${home.status}`);

@@ -163,6 +163,58 @@ router.get('/google/callback', async (req, res) => {
   }
 });
 
+// ---- Sign-in from Tether (the Prism card) ----
+// Tether's GET /auth/prism redirects here as <this route>?token=<jwt>, the same hand-off it uses for Alumni
+// Connect: an HS256 JWT signed with Tether's JWT_SECRET (INTEGRATION_JWT_SECRET here), valid for 10 minutes,
+// carrying email and name. Tether decides who is offered the card; this app still lets in only people who were
+// given access (upsertUser). A token works once, and refusals return to /?signin=<reason> like Google's.
+const usedSsoTokens = new Map(); // signature -> expiry (ms); one process, so memory is enough
+function readTetherToken(token, key) {
+  const parts = String(token).split('.');
+  if (parts.length !== 3) return { error: 'sso_invalid' };
+  const [head, body, sig] = parts;
+  let header, payload;
+  try {
+    header = JSON.parse(Buffer.from(head, 'base64url').toString());
+    payload = JSON.parse(Buffer.from(body, 'base64url').toString());
+  } catch { return { error: 'sso_invalid' }; }
+  if (header?.alg !== 'HS256') return { error: 'sso_invalid' }; // never trust the token's own choice of algorithm
+  const expected = crypto.createHmac('sha256', key).update(`${head}.${body}`).digest();
+  const given = Buffer.from(sig, 'base64url');
+  if (given.length !== expected.length || !crypto.timingSafeEqual(given, expected)) return { error: 'sso_invalid' };
+  const exp = Number(payload?.exp) * 1000;
+  if (!exp) return { error: 'sso_invalid' }; // a token with no expiry is not one of Tether's
+  if (exp <= Date.now()) return { error: 'sso_expired' };
+  const now = Date.now();
+  for (const [k, until] of usedSsoTokens) if (until <= now) usedSsoTokens.delete(k);
+  if (usedSsoTokens.has(sig)) return { error: 'sso_used' };
+  usedSsoTokens.set(sig, exp);
+  return { payload };
+}
+
+router.get('/sso', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Referrer-Policy', 'no-referrer'); // the token is in this URL; keep it out of Referer headers
+  const deny = (reason) => res.redirect(`${frontendUrl()}/?signin=${reason}`);
+  try {
+    const key = (process.env.INTEGRATION_JWT_SECRET || '').trim();
+    if (!key) return deny('sso_not_configured');
+    const token = typeof req.query.token === 'string' ? req.query.token : '';
+    if (!token) return deny('sso_invalid');
+    const { payload, error } = readTetherToken(token, key);
+    if (error) return deny(error);
+    const email = String(payload.email || '').trim().toLowerCase();
+    if (!email || email.split('@')[1] !== allowedDomain()) return deny('wrong_domain');
+    let user;
+    try { user = await upsertUser(email, payload.name); } catch (err) { if (err.reason) return deny(err.reason); throw err; }
+    setSession(res, user);
+    res.redirect(`${frontendUrl()}/`);
+  } catch (err) {
+    console.error('[auth] tether sign-in error', err.message);
+    deny('sso_failed');
+  }
+});
+
 // Dev sign-in: only when Google sign-in is not configured. Never enable in production.
 router.post('/dev', async (req, res) => {
   if (authMode() !== 'dev') return res.status(400).json({ error: 'Dev sign-in is disabled' });
