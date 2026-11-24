@@ -105,6 +105,32 @@ try {
       check('a viewer cannot set a default database through the API', forced.status === 403, `status ${forced.status}`);
       const allowed = await post('/api/modules/memory/me', { values: { answer_style: 'concise' } }, viewerCookie);
       check('a viewer can still save the other preferences', allowed.status === 200, `status ${allowed.status}`);
+
+      // Who is online, and chat between the two of them.
+      const people = '/api/modules/people';
+      const here = async (c) => (await post(`${people}/presence`, {}, c)).json();
+      await here(cookie);
+      const viewerSees = await here(viewerCookie);
+      const adminSees = await here(cookie);
+      check('each person sees the other as online, and not themselves', viewerSees.online?.length === 1 && adminSees.online?.length === 1 && adminSees.online[0].name === 'CI Viewer', JSON.stringify({ viewerSees, adminSees }).slice(0, 300));
+      const viewerId = adminSees.online?.[0]?.id, adminId = viewerSees.online?.[0]?.id;
+      const sent = await post(`${people}/chat/${viewerId}`, { body: 'Hello from CI' }, cookie);
+      check('a message can be sent to a colleague', sent.status === 201, `status ${sent.status}`);
+      const waiting = await here(viewerCookie);
+      check('the recipient is told one message is unread', waiting.unread?.length === 1 && waiting.unread[0].count === 1 && waiting.unread[0].id === adminId, JSON.stringify(waiting.unread));
+      const thread = await get(`${people}/chat/${adminId}`, { Cookie: viewerCookie });
+      check('the recipient can read it, and it is not marked as theirs', thread.json?.messages?.length === 1 && thread.json.messages[0].body === 'Hello from CI' && thread.json.messages[0].mine === false, thread.text.slice(0, 200));
+      check('opening the conversation clears the unread count', (await here(viewerCookie)).unread?.length === 0);
+      const back = await get(`${people}/chat/${viewerId}`, { Cookie: cookie });
+      check('the sender sees it was read', back.json?.seen === back.json?.messages?.[0]?.id && back.json?.messages?.[0]?.mine === true, back.text.slice(0, 200));
+      const listed = await get(`${people}/list`, { Cookie: viewerCookie });
+      check('the chat list shows the conversation', listed.json?.people?.[0]?.last?.body === 'Hello from CI' && listed.json.people[0].online === true, listed.text.slice(0, 200));
+      check('nobody can message themselves', (await post(`${people}/chat/${adminId}`, { body: 'x' }, cookie)).status === 400);
+      check('an empty message is refused', (await post(`${people}/chat/${viewerId}`, { body: '   ' }, cookie)).status === 400);
+      check('a message to someone who does not exist is refused', (await post(`${people}/chat/999999`, { body: 'x' }, cookie)).status === 404);
+      check('chat needs a session', (await get(`${people}/list`)).status === 401);
+      await post(`${people}/presence/leave`, {}, viewerCookie);
+      check('leaving takes the person off the online list at once', (await here(cookie)).online?.length === 0);
     }
   }
 

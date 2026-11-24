@@ -92,7 +92,7 @@ export function quotaLabel(q) {
 }
 
 // The person's Google profile picture; their initials when there is none yet or it does not load.
-function Avatar({ user }) {
+export function Avatar({ user }) {
   const [broken, setBroken] = useState(false)
   const initials = String(user.name || user.email || '?').split(/[\s.@]+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('')
   if (user.picture && !broken) return <img className="avatar" src={user.picture} alt="" referrerPolicy="no-referrer" onError={() => setBroken(true)} />
