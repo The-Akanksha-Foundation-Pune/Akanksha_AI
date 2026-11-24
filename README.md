@@ -106,3 +106,17 @@ Chats are kept in the browser's localStorage.
 - The **Glossary** on the Admin page holds agreed definitions (for one database or all). They go into every prompt so terms like "active student" always mean the same thing.
 - **Charts for free (off by default).** Turn on *Answers → Charts in answers* in Admin settings. When on and a query result has a label or date column plus numbers, the server attaches a compact chart spec to that step and the answer shows a chart card (bars, rows, line or pie, switchable, hideable). Claude is never asked to draw anything, so prompts and answers cost exactly the same tokens as before.
 - Every finished answer has a **Download as Word** button. The .docx keeps headings, tables, lists, code and links. Queries are not included.
+
+## CI/CD and deployment
+
+Every pull request to `main` runs CI on GitHub (client lint and build, server syntax check,
+migrations on an empty MySQL, a smoke test of the running server). A merge to `main` then deploys
+through a self-hosted runner on the app server, once that runner is installed and the repository
+variable `DEPLOY_ENABLED` is `true`. Setup, the manual deploy and troubleshooting are in
+[docs/DEPLOY.md](docs/DEPLOY.md); the deploy script, PM2 definition, nginx block and environment
+template are in `deploy/`.
+
+```bash
+npm run check --prefix server    # every server file parses
+npm run smoke --prefix server    # starts the server and checks health, auth refusals, the page
+```

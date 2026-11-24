@@ -60,7 +60,7 @@ export function SignIn({ info, onSignedIn }) {
         <div className="brand big"><span className="brand-dot" />Akanksha AI</div>
         <p className="muted">Ask questions about the foundation's data. Sign in with your {info.domain} account.</p>
         {info.mode === 'google' ? (
-          <a className="google-btn" href="/api/modules/auth/google"><GoogleMark />Continue with Google</a>
+          <a className="google-btn" href={`${import.meta.env.BASE_URL}api/modules/auth/google`}><GoogleMark />Continue with Google</a>
         ) : (
           <form onSubmit={devSignIn} className="dev-form">
             <div className="dev-badge">Development sign-in · no password · set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to switch to Google</div>
