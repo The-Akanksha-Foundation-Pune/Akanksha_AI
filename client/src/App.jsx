@@ -6,6 +6,7 @@ import StepsBlock from './modules/steps.jsx'
 import { fetchMe, logout, SignIn, UserChip } from './modules/auth.jsx'
 import AdminPage from './modules/admin.jsx'
 import PreferencesPanel from './modules/preferences.jsx'
+import PrismMark from './modules/PrismMark.jsx'
 import AnswerMeta from './modules/answerMeta.jsx'
 import PromptFooter from './modules/promptFooter.jsx'
 import ClarifyDialog from './modules/clarify.jsx'
@@ -356,7 +357,7 @@ function ChatApp({ user, tetherUrl, onLogout }) {
     <div className="app">
       <aside className={`sidebar ${sidebarOpen ? '' : 'collapsed'}`}>
         <div className="sidebar-header">
-          <div className="brand"><span className="brand-dot" />Prism</div>
+          <div className="brand"><PrismMark size={34} mode={streaming ? 'loop' : 'once'} />Prism</div>
           <button className="icon-btn" onClick={() => setSidebarOpen(false)} title="Hide sidebar">‹</button>
         </div>
         <button className="new-chat" onClick={createChat}>＋ New chat</button>

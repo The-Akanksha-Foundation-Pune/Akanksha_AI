@@ -1,1 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect x="2" y="2" width="28" height="26" rx="8" fill="#eab676"/><rect x="2" y="1" width="28" height="24" rx="8" fill="#ffd08a" stroke="#eab676" stroke-width="2"/><path d="M10 18 16 8l6 10" fill="none" stroke="#4a3210" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <!-- Prism mark, still frame: a beam of light enters a prism and comes out as a chart. -->
+  <rect width="120" height="120" rx="26" fill="#fff9ee"/>
+  <g stroke-width="3" stroke-linecap="round">
+    <line x1="41" y1="60" x2="67.5" y2="64" stroke="#ff6b6b"/>
+    <line x1="41" y1="60" x2="81.5" y2="42" stroke="#ffd43b"/>
+    <line x1="41" y1="60" x2="95.5" y2="54" stroke="#22b8cf"/>
+    <line x1="41" y1="60" x2="109.5" y2="28" stroke="#845ef7"/>
+  </g>
+  <rect x="62" y="64" width="11" height="34" rx="3" fill="#ff6b6b"/>
+  <rect x="76" y="42" width="11" height="56" rx="3" fill="#ffd43b"/>
+  <rect x="90" y="54" width="11" height="44" rx="3" fill="#22b8cf"/>
+  <rect x="104" y="28" width="11" height="70" rx="3" fill="#845ef7"/>
+  <line x1="4" y1="64" x2="19" y2="60" stroke="#ffb84d" stroke-width="6" stroke-linecap="round"/>
+  <polygon points="30,38 8,82 52,82" fill="#f4f0ff" stroke="#3a3050" stroke-width="6" stroke-linejoin="round"/>
+</svg>

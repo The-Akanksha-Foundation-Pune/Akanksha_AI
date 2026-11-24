@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import PrismMark from './PrismMark.jsx'
 
 export async function fetchMe() {
   const r = await fetch('/api/modules/auth/me')
@@ -63,7 +64,7 @@ export function SignIn({ info, onSignedIn }) {
   return (
     <div className="signin">
       <div className="signin-card">
-        <div className="brand big"><span className="brand-dot" />Prism</div>
+        <div className="brand big"><PrismMark size={52} mode="loop" />Prism</div>
         <p className="muted">Ask questions about the foundation's data. Sign in with your {info.domain} account.</p>
         {info.mode === 'google' ? (
           <a className="google-btn" href={`${import.meta.env.BASE_URL}api/modules/auth/google`}><GoogleMark />Continue with Google</a>
