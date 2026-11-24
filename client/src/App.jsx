@@ -7,6 +7,7 @@ import { fetchMe, logout, SignIn, UserChip } from './modules/auth.jsx'
 import AdminPage from './modules/admin.jsx'
 import PreferencesPanel from './modules/preferences.jsx'
 import PrismMark from './modules/PrismMark.jsx'
+import Guide from './modules/guide.jsx'
 import AnswerMeta from './modules/answerMeta.jsx'
 import PromptFooter from './modules/promptFooter.jsx'
 import ClarifyDialog from './modules/clarify.jsx'
@@ -57,6 +58,7 @@ export default function App() {
 
 function ChatApp({ user, tetherUrl, onLogout }) {
   const [adminOpen, setAdminOpen] = useState(false)
+  const [guideOpen, setGuideOpen] = useState(false) // the "What can I ask?" page
   const [prefsOpen, setPrefsOpen] = useState(false)
   const [quota, setQuota] = useState(null)
   const loadQuota = () => fetch('/api/modules/quota/me').then((r) => (r.ok ? r.json() : null)).then((q) => q && setQuota(q)).catch(() => {})
@@ -365,14 +367,15 @@ function ChatApp({ user, tetherUrl, onLogout }) {
           <div className="brand"><PrismMark size={34} mode={streaming ? 'loop' : 'once'} />Prism</div>
           <button className="icon-btn" onClick={() => setSidebarOpen(false)} title="Hide sidebar">‹</button>
         </div>
-        <button className="new-chat" onClick={createChat}>＋ New chat</button>
+        <button className="new-chat" onClick={() => { setGuideOpen(false); createChat() }}>＋ New chat</button>
+        <button type="button" className={`guide-link ${guideOpen ? 'on' : ''}`} onClick={() => { setAdminOpen(false); setGuideOpen(true) }}>What can I ask?</button>
 
         <div className="conv-list">
           {recentChats.map((c) => (
             <button
               key={c.id}
               className={`conv-item ${c.id === active.id ? 'active' : ''}`}
-              onClick={() => setActiveId(c.id)}
+              onClick={() => { setGuideOpen(false); setActiveId(c.id) }}
             >
               <span className="title" title={c.title}>{c.title}</span>
               <span className="del" title="Delete" onClick={(e) => { e.stopPropagation(); deleteChat(c.id) }}>✕</span>
@@ -381,7 +384,7 @@ function ChatApp({ user, tetherUrl, onLogout }) {
         </div>
 
         <div className="sidebar-user">
-          <UserChip user={user} quota={quota} credits={credits} onLogout={onLogout} adminOpen={adminOpen} onAdmin={() => { setAdminOpen((o) => !o); loadQuota(); loadCredits() }} onPreferences={() => setPrefsOpen(true)} />
+          <UserChip user={user} quota={quota} credits={credits} onLogout={onLogout} adminOpen={adminOpen} onAdmin={() => { setGuideOpen(false); setAdminOpen((o) => !o); loadQuota(); loadCredits() }} onPreferences={() => setPrefsOpen(true)} />
         </div>
       </aside>
 
@@ -390,7 +393,7 @@ function ChatApp({ user, tetherUrl, onLogout }) {
           {!sidebarOpen && (
             <button className="icon-btn" onClick={() => setSidebarOpen(true)} title="Show sidebar">☰</button>
           )}
-          <div className="topbar-title">{adminOpen ? 'Admin' : active.title}</div>
+          <div className="topbar-title">{adminOpen ? 'Admin' : guideOpen ? 'Guide' : active.title}</div>
           {!adminOpen && (
             <span className="db-picker" title={canPickDb ? 'Auto picks the database from your question. Choose one yourself to fix it; changing it starts a new chat.' : 'The database is picked automatically for each question.'}>
               <select
@@ -431,13 +434,14 @@ function ChatApp({ user, tetherUrl, onLogout }) {
           return <ClarifyDialog questions={last.clarify.questions} onClose={close} onSubmit={(text) => { close(); send(text, { keepDb: true }) }} />
         })()}
         {prefsOpen && <PreferencesPanel databases={databases} onClose={() => setPrefsOpen(false)} />}
-        {adminOpen ? <AdminPage user={user} databases={databases} /> : (<>
+        {adminOpen ? <AdminPage user={user} databases={databases} /> : guideOpen ? <Guide databases={databases} onClose={() => setGuideOpen(false)} onAsk={(q) => { setGuideOpen(false); send(q) }} /> : (<>
 
         <section className="messages">
           {activeMessages.length === 0 ? (
             <div className="empty">
               <h1>Ask about your data</h1>
               <p>{autoDb ? 'Claude picks the right database for your question and runs read-only queries to answer.' : `Claude can see every table in ${dbName || 'the database'} and runs read-only queries to answer.`}</p>
+              <p className="empty-guide"><button type="button" className="link-btn" onClick={() => setGuideOpen(true)}>See everything you can ask about →</button></p>
               <div className="suggestions">
                 {SUGGESTIONS.map((s) => (
                   <button key={s} className="suggestion" onClick={() => send(s)}>{s}</button>
