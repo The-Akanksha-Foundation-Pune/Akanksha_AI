@@ -1,0 +1,179 @@
+name: CI/CD
+
+# Pull request to main : CI only (lint, build, syntax check, migrations, smoke test).
+# Push to main         : CI, then deploy to production if CI passes.
+# Run workflow (manual): the same, for re-deploying main without a new commit.
+#
+# Deploying is switched on by the repository variable DEPLOY_ENABLED=true and needs the
+# self-hosted runner on the app server. See docs/DEPLOY.md, "CI/CD".
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  # A newer commit on a pull request replaces the older run. On main, runs queue instead: a
+  # deploy must never be cancelled half-way.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  client:
+    name: Client (lint, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - run: npm ci --prefix client --no-audit --no-fund
+      - name: Lint
+        run: npm run lint --prefix client
+      - name: Build (as it is built for production)
+        run: npm run build --prefix client
+        env:
+          VITE_BASE_PATH: /akanksha-ai/
+      - name: The build carries the production path
+        run: grep -q '/akanksha-ai/assets/' client/dist/index.html
+
+  server:
+    name: Server (migrations, smoke test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci-root-password
+          MYSQL_DATABASE: AI_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pci-root-password --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    # A throwaway MySQL and made-up values: no real database, key or account is used in CI.
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: ci-root-password
+      DB_NAME: AI_ci
+      AI_DB_NAME: AI_ci
+      EMPLOYEE_DB_NAME: none
+      ANTHROPIC_API_KEY: ci-not-a-real-key
+      JWT_SECRET: ci-not-a-real-secret
+      AUTH_MODE: dev
+      AUTH_ALLOWED_DOMAIN: example.org
+      SUPER_ADMIN_EMAILS: ci-admin@example.org
+      PORT: 5000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci --prefix server --no-audit --no-fund
+      - name: Syntax check (every server file parses)
+        run: npm run check --prefix server
+      - name: No secrets file in the repository
+        run: |
+          if git ls-files | grep -E '(^|/)\.env($|\.)' | grep -v -E '\.example$'; then
+            echo "::error::A .env file is committed. Remove it and rotate every value in it."
+            exit 1
+          fi
+      - name: Migrations apply to an empty database, in order
+        run: npm run migrate --prefix server
+      - name: Migrations are safe to run again
+        run: |
+          OUT=$(npm run migrate --prefix server)
+          echo "$OUT"
+          echo "$OUT" | grep -q 'up to date'
+      # Starts the real server and drives it over HTTP: every module loads, health and the
+      # database answer, the API refuses a caller with no session, an invited super admin gets
+      # in and a stranger does not, and the client page is served.
+      - name: Smoke test
+        run: |
+          mkdir -p client/dist && echo '<!doctype html><div id="root"></div>' > client/dist/index.html
+          npm run smoke --prefix server
+        env:
+          SMOKE_SIGNIN: 1
+          SERVE_CLIENT: 1
+
+  deploy:
+    name: Deploy to production
+    needs: [client, server]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+    # A self-hosted runner on the app server, the same arrangement Alumni Connect and Tether use
+    # (docs/DEPLOY.md, "CI/CD"). Only this job uses it: CI above runs on GitHub's machines, so
+    # code from a pull request never runs on the server.
+    runs-on: [self-hosted, linux, akanksha-ai-prod]
+    timeout-minutes: 20
+    environment: production
+    concurrency:
+      group: akanksha-ai-deploy
+      cancel-in-progress: false
+    env:
+      # Set the repository variable APP_DIR if the checkout lives somewhere else.
+      APP_DIR: ${{ vars.APP_DIR || '/home/ec2-user/Akanksha_AI' }}
+      DEPLOY_SHA: ${{ github.sha }}
+    steps:
+      # deploy/deploy.sh installs, builds beside the live files, migrates, swaps the build in,
+      # restarts PM2 and waits for /api/health. If it fails, the previous commit is deployed
+      # again. A migration that already ran is not undone by that.
+      - name: Deploy, health-check, roll back on failure
+        shell: bash
+        run: |
+          set -e
+          cd "$APP_DIR"
+          PREV_SHA=$(git rev-parse HEAD)
+          echo "Deploying ${DEPLOY_SHA::7} (previous: ${PREV_SHA::7})"
+          git fetch origin main
+          git checkout -f main
+          git reset --hard "$DEPLOY_SHA"
+
+          if bash deploy/deploy.sh; then
+            echo "Deploy of ${DEPLOY_SHA::7} succeeded"
+            exit 0
+          fi
+
+          echo "::error::Deploy of ${DEPLOY_SHA::7} failed; rolling back to ${PREV_SHA::7}"
+          git reset --hard "$PREV_SHA"
+          if [ -f deploy/deploy.sh ]; then
+            bash deploy/deploy.sh || echo "::error::ROLLBACK FAILED: check the server manually"
+          else
+            echo "::error::The previous version has no deploy script; check the server manually"
+          fi
+          exit 1
+
+      # The public address comes from CLIENT_URL in the server's .env, so it is written in one place.
+      - name: Check the public site
+        shell: bash
+        run: |
+          URL=$(grep -E '^CLIENT_URL=' "$APP_DIR/.env" | tail -1 | cut -d= -f2- | tr -d '[:space:]"' | sed 's#/*$##')
+          case "$URL" in
+            https://*) ;;
+            *) echo "::warning::CLIENT_URL in .env is not an https address; public check skipped."; exit 0 ;;
+          esac
+          BODY=$(curl -fsS -m 20 "$URL/api/health")
+          echo "$BODY"
+          echo "$BODY" | grep -q '"app":"Akanksha_AI"'
+
+  deploy-off:
+    name: Deploy (switched off)
+    needs: [client, server]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "::notice::CI passed. Automatic deploy is off: install the runner on the server and set the repository variable DEPLOY_ENABLED=true (docs/DEPLOY.md, CI/CD)."

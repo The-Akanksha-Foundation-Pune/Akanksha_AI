@@ -37,6 +37,16 @@ registry.mountRoutes(app);
 
 app.get('/api/modules', (req, res) => res.json({ modules: registry.listModules() }));
 
+// Production: Express serves the built client itself (SERVE_CLIENT=1), so one PM2 process and one nginx
+// block cover the page, its assets and the API. In development Vite serves the client instead.
+if (process.env.SERVE_CLIENT === '1') {
+  const dist = path.resolve(__dirname, '../../client/dist');
+  const page = (req, res) => { res.setHeader('Cache-Control', 'no-cache'); res.sendFile(path.join(dist, 'index.html')); };
+  app.get('/', page);
+  app.use(express.static(dist, { index: false, maxAge: '1h' }));
+  app.get(/^\/(?!api\/).*/, page);
+}
+
 app.listen(PORT, () => {
   console.log(`Akanksha_AI server running on http://localhost:${PORT}`);
 });

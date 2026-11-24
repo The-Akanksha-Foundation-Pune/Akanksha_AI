@@ -5,3 +5,7 @@ dist/
 !.env.example
 .DS_Store
 *.log
+
+# Client builds made on the server by deploy/deploy.sh
+dist.next/
+dist.prev/

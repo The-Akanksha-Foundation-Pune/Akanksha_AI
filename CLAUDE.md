@@ -54,6 +54,14 @@ npm run migrate --prefix server   # apply pending migrations to the AI database
 - The server uses `node --watch`. A file that fails to parse is dropped from the watch list; `touch server/src/index.js` to restart after fixing it.
 - Vite proxies `/api` to the server, so the client uses relative URLs.
 
+## CI/CD and deploy (added 24 Nov 2026)
+
+- `.github/workflows/ci-cd.yml`: on a pull request to `main`, CI on GitHub's machines (client lint + production build; server `npm run check`, migrations on an empty MySQL, `npm run smoke`). On a push to `main`, CI then the deploy job on a self-hosted runner labelled `akanksha-ai-prod`, only when the repository variable `DEPLOY_ENABLED` is `true`. Same arrangement as Alumni Connect.
+- `deploy/deploy.sh` (build beside the live files, migrate, swap, PM2 restart, health check), `deploy/ecosystem.config.cjs`, `deploy/nginx-akanksha-ai.conf`, `deploy/env.production.example`; steps in `docs/DEPLOY.md`. As of 24 Nov 2026 nothing is set up on the server: no runner, no checkout, no nginx block.
+- Production is planned under a sub-path: the client is built with `VITE_BASE_PATH=/akanksha-ai/` (`vite.config.js` `base`), `client/src/main.jsx` prefixes every `/api/...` fetch with it, and Express serves `client/dist` when `SERVE_CLIENT=1`. Keep writing API calls as `fetch('/api/...')`; a link or `window.open` to the API must use `import.meta.env.BASE_URL` itself.
+- The deploy runs `npm run migrate` on the server. A new migration therefore reaches production with the merge that carries it; keep migrations additive so a rollback to the previous commit still works.
+- The smoke test with `SMOKE_SIGNIN=1` creates a user row; that is for CI's throwaway database only.
+
 ## Auth and roles
 
 - Every `/api` route except `/api/health*` and `/api/modules/auth/*` needs a session (`index.js`). `req.user` = `{id, email, name, role}`.
@@ -117,7 +125,7 @@ the browser's localStorage for now.
 - **Printed tables**: `run_sql` takes `show_table` / `table_title`. When true, the sql module queues the full result (up to `table.max_rows`, default 1000) as a Markdown table in `ctx.tables`, gives the model a 15-row preview plus totals, and `chat.js` appends the queued tables to the answer text after the loop. The model never retypes rows (16 Nov 2026: a retyped 278-row table took 77 s, cost $0.23 and had a copy error; printed it takes 15 s and $0.07). `buildHistory` cuts long tables in earlier answers to 12 lines before they go back to the model.
 - **Views** count as tables in the schema and the sidebar, marked with a badge and no row count. Row counts come from `TABLE_ROWS` and are estimates.
 - **Styling**: plain CSS in `App.css` with tokens in `index.css`; dark mode follows the system. No UI library.
-- **No tests yet.** Verify changes by running the app in the browser pane and asking a real question; check the server log and the SSE events. To check what the app wrote (usage, feedback, learned queries), SELECT from the AI database; do not insert test rows and do not delete anything.
+- **No answer tests yet** (CI has a boot-level smoke test only). Verify changes by running the app in the browser pane and asking a real question; check the server log and the SSE events. To check what the app wrote (usage, feedback, learned queries), SELECT from the AI database; do not insert test rows and do not delete anything.
 - **Secrets**: anything pasted into `.env` has also been in a chat; rotate the Anthropic key before release.
 
 ## App database (`AI_DB_NAME`)
