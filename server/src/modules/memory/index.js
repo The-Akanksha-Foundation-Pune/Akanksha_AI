@@ -6,9 +6,12 @@ import { requireRole } from '../auth/index.js';
 
 const MEMORY_KEYS = {
   answer_style: { label: 'Answer style', kind: 'select', options: ['concise', 'balanced', 'detailed'], def: 'balanced', help: 'How much explanation to include with the numbers.' },
-  default_database: { label: 'Default database', kind: 'database', help: 'Opened when you start a new chat.' },
+  // Admins only: everyone else has the database picked for them (the header dropdown is locked too).
+  default_database: { label: 'Default database', kind: 'database', help: 'Opened when you start a new chat.', adminOnly: true },
   notes: { label: 'Things to remember', kind: 'text', help: 'Short notes the assistant should keep in mind for you, e.g. "I look after the Pune schools" or "I prefer school acronyms".', max: 600 },
 };
+
+const keysFor = (user) => Object.fromEntries(Object.entries(MEMORY_KEYS).filter(([, def]) => !def.adminOnly || user?.role === 'admin'));
 
 const missing = (err) => /doesn't exist|ER_NO_SUCH_TABLE/i.test(err.message);
 
@@ -39,7 +42,9 @@ export async function tableNotes(database, force = false) {
 const router = Router();
 
 router.get('/me', async (req, res) => {
-  res.json({ keys: MEMORY_KEYS, memory: await memoryFor(req.user.id) });
+  const keys = keysFor(req.user);
+  const memory = await memoryFor(req.user.id);
+  res.json({ keys, memory: Object.fromEntries(Object.entries(memory).filter(([k]) => keys[k])) });
 });
 
 // POST /api/modules/memory/me { values: { answer_style, default_database, notes } }  (empty string clears)
@@ -49,6 +54,7 @@ router.post('/me', async (req, res) => {
     for (const [key, raw] of Object.entries(values)) {
       const def = MEMORY_KEYS[key];
       if (!def) return res.status(400).json({ error: `Unknown memory key ${key}` });
+      if (def.adminOnly && req.user.role !== 'admin') return res.status(403).json({ error: `${def.label} can only be set by an admin` });
       let value = String(raw ?? '').trim();
       if (def.kind === 'select' && value && !def.options.includes(value)) return res.status(400).json({ error: `Invalid ${def.label}` });
       if (def.max) value = value.slice(0, def.max);

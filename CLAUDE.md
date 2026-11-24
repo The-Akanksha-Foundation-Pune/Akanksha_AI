@@ -1,5 +1,7 @@
 # Akanksha AI
 
+**Shown to people as "Prism"** (user decision, 24 Nov 2026): the page title, header, sign-in page, messages, Word export and the assistant's own name say Prism. Folder, repository, package, PM2 and database names, the `/akanksha-ai/` path, localStorage keys and the health check's `app: "Akanksha_AI"` (which `deploy/deploy.sh` looks for) stay as they are. Write "Prism" in any new text a user will read.
+
 Internal data assistant for the Akanksha Foundation (schools NGO, Pune / Mumbai / Nagpur).
 Staff pick a MySQL database, ask a question in plain English, and Claude answers by running
 read-only SQL against it. Owner: Nikhil Aher (nikhil.aher@akanksha.org).
@@ -119,6 +121,7 @@ the browser's localStorage for now.
 - **Model**: `CLAUDE_MODEL` in `.env` wins (now `claude-sonnet-5-5`, user decision 27 Oct 2026), else `app_settings.default_model`, else `claude-opus-5-5`. Router tiers: lookup Haiku, aggregate Sonnet, analysis Sonnet (`router.analysis_model` set to Sonnet the same day; Opus only if an admin changes it back). Effort, tool rounds, row cap and history length come from `app_settings` (30 s cache). Requests go through `client.beta.messages.stream` with `fallbacks: 'default'` and beta `server-side-fallback-2026-07-01`. Keep streaming; keep `max_tokens` 16000.
 - **Prompt caching**: the schema block carries `cache_control`. Keep stable content first and anything that changes per request after it. Verify with `usage.cache_read_input_tokens` in the `done` event.
 - **SQL safety is layered**: regex guard in `schema.js`, read-only transaction, row cap, `USE` blocked, database name validated against the list the credentials can see. Do not loosen any layer; add a DB user with SELECT-only grants before any public release.
+- **Default-database preference is admin-only** (user request, 24 Nov 2026): `MEMORY_KEYS.default_database` has `adminOnly`; the memory module leaves it out of `GET /me` for other roles and refuses it on `POST /me` with 403. Nothing reads the stored value yet.
 - **Database dropdown is admin-only** (user request, 24 Nov 2026): for analysts and viewers the header dropdown is disabled and `autoDb` is forced on (`canPickDb` in `App.jsx`). Client-side only; the API still accepts a `database` from any role, limited by access rules.
 - **Per-chat database**: a conversation remembers its database, and choosing a database by hand still starts a new chat. In Auto mode (user request, 16 Nov 2026) every follow-up is re-checked by `/api/modules/autodb/pick` with `current` + `previous`; the chat stays put unless the question is clearly about other data, in which case the client sends `switchDatabase: true`, `chat.js` updates `conversations.database_name` and the answer starts with "Switched to the X database for this question." Each request still sees one schema; history is answer text only, so schemas never mix in the prompt. Replies from the clarify dialog skip the re-check (`keepDb`).
 - **Tool results**: on a failed query return `tool_result` with `is_error: true`; never drop it. Append `final.content` whole (thinking blocks included) when continuing the loop.

@@ -356,7 +356,7 @@ function ChatApp({ user, onLogout }) {
     <div className="app">
       <aside className={`sidebar ${sidebarOpen ? '' : 'collapsed'}`}>
         <div className="sidebar-header">
-          <div className="brand"><span className="brand-dot" />Akanksha AI</div>
+          <div className="brand"><span className="brand-dot" />Prism</div>
           <button className="icon-btn" onClick={() => setSidebarOpen(false)} title="Hide sidebar">‹</button>
         </div>
         <button className="new-chat" onClick={createChat}>＋ New chat</button>
@@ -515,7 +515,7 @@ function ChatApp({ user, onLogout }) {
             />
             <div className="composer-row">
               {creditsOver
-                ? <span className="hint credits-over">Your credits are over. {credits.monthlyRefill ? 'They refill on the 1st of next month, or ask an admin to add more.' : 'Please ask an admin to add more credits to keep using Akanksha AI.'}</span>
+                ? <span className="hint credits-over">Your credits are over. {credits.monthlyRefill ? 'They refill on the 1st of next month, or ask an admin to add more.' : 'Please ask an admin to add more credits to keep using Prism.'}</span>
                 : <span className="hint">Enter to send · Shift+Enter for a new line</span>}
               {streaming ? (
                 <button className="send stop" onClick={stop} title="Stop">■</button>

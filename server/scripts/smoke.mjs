@@ -86,6 +86,25 @@ try {
     }
     const stranger = await fetch(base + '/api/modules/auth/dev', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: `not-invited@${email.split('@')[1]}` }) });
     check('someone who was not given access is refused', stranger.status === 403, `status ${stranger.status}`);
+
+    // A viewer, added the way Admin > Access adds people, does not get the admin-only preference.
+    if (cookie) {
+      const post = (url, body, c) => fetch(base + url, { method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: c }, body: JSON.stringify(body) });
+      const viewerEmail = `ci-viewer@${email.split('@')[1]}`;
+      const added = await post('/api/modules/auth/users', { email: viewerEmail, role: 'viewer', name: 'CI Viewer' }, cookie);
+      check('a super admin can give a viewer access', added.status === 201 || added.status === 200, `status ${added.status}`);
+      const vr = await fetch(base + '/api/modules/auth/dev', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: viewerEmail }) });
+      const viewerCookie = (vr.headers.get('set-cookie') || '').split(';')[0];
+      check('the viewer can sign in', vr.status === 200 && !!viewerCookie, `status ${vr.status}`);
+      const adminKeys = Object.keys((await get('/api/modules/memory/me', { Cookie: cookie })).json?.keys || {});
+      const viewerKeys = Object.keys((await get('/api/modules/memory/me', { Cookie: viewerCookie })).json?.keys || {});
+      check('an admin is offered the default-database preference', adminKeys.includes('default_database'), adminKeys.join(','));
+      check('a viewer is not offered the default-database preference', viewerKeys.length > 0 && !viewerKeys.includes('default_database'), viewerKeys.join(','));
+      const forced = await post('/api/modules/memory/me', { values: { default_database: 'AFDW' } }, viewerCookie);
+      check('a viewer cannot set a default database through the API', forced.status === 403, `status ${forced.status}`);
+      const allowed = await post('/api/modules/memory/me', { values: { answer_style: 'concise' } }, viewerCookie);
+      check('a viewer can still save the other preferences', allowed.status === 200, `status ${allowed.status}`);
+    }
   }
 
   // 6. Sign-in from Tether (throwaway database only): a token as Tether's jwt.sign() makes it

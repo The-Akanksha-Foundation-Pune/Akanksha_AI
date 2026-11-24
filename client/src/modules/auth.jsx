@@ -11,7 +11,7 @@ export async function logout() {
 
 const SIGNIN_ERRORS = {
   wrong_domain: 'Please use your @akanksha.org Google account.',
-  no_access: 'You have not been given access to Akanksha AI yet. Ask an admin to add you under Admin > Access, then sign in again.',
+  no_access: 'You have not been given access to Prism yet. Ask an admin to add you under Admin > Access, then sign in again.',
   google_cancelled: 'Google sign-in was cancelled.',
   google_state_mismatch: 'The sign-in took too long or was opened in another tab. Please try again.',
   google_not_configured: 'Google sign-in is not set up on this server.',
@@ -63,7 +63,7 @@ export function SignIn({ info, onSignedIn }) {
   return (
     <div className="signin">
       <div className="signin-card">
-        <div className="brand big"><span className="brand-dot" />Akanksha AI</div>
+        <div className="brand big"><span className="brand-dot" />Prism</div>
         <p className="muted">Ask questions about the foundation's data. Sign in with your {info.domain} account.</p>
         {info.mode === 'google' ? (
           <a className="google-btn" href={`${import.meta.env.BASE_URL}api/modules/auth/google`}><GoogleMark />Continue with Google</a>
