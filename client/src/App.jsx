@@ -8,6 +8,7 @@ import AdminPage from './modules/admin.jsx'
 import PreferencesPanel from './modules/preferences.jsx'
 import PrismMark from './modules/PrismMark.jsx'
 import Guide from './modules/guide.jsx'
+import OnlinePeople from './modules/people.jsx'
 import AnswerMeta from './modules/answerMeta.jsx'
 import PromptFooter from './modules/promptFooter.jsx'
 import ClarifyDialog from './modules/clarify.jsx'
@@ -425,6 +426,7 @@ function ChatApp({ user, tetherUrl, onLogout }) {
           {!adminOpen && (routing
             ? <div className="model-pill" title={`Lookups: ${MODEL_LABELS[routing.lookup] || routing.lookup}\nAggregates: ${MODEL_LABELS[routing.aggregate] || routing.aggregate}\nAnalysis: ${MODEL_LABELS[routing.analysis] || routing.analysis}`}>Auto · {(MODEL_LABELS[routing.lookup] || routing.lookup).replace('Claude ', '')} → {(MODEL_LABELS[routing.analysis] || routing.analysis).replace('Claude ', '')}</div>
             : <div className="model-pill" title={modelId}>{MODEL_LABELS[modelId] || modelId || "Model"}</div>)}
+          <OnlinePeople />
           {tetherUrl && <a className="action-btn tether-back" href={tetherUrl} title="Return to the Tether home page">← Back to Tether</a>}
         </header>
         {(() => {
