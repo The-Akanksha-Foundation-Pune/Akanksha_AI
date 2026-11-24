@@ -78,7 +78,8 @@ function Face({ person, size }) {
   return <span className="face" style={size ? { '--face': `${size}px` } : undefined}><Avatar user={person} />{person.online && <i className="face-dot" aria-hidden="true" />}</span>
 }
 
-// The header piece: faces of the people online, "+N" for the rest, and the chat button with the unread count.
+// Faces of the people online in the header ("+N" for the rest), and the chat bubble that floats at the bottom
+// right with the unread count. The panel and the new-message notice open above the bubble.
 export default function OnlinePeople() {
   const { online, unread, available, markRead } = usePresence()
   const [panel, setPanel] = useState(null) // null: closed. { id: null }: the list. { id }: one conversation.
@@ -125,10 +126,12 @@ export default function OnlinePeople() {
           {extra > 0 && <button type="button" className="face-btn face-more" onClick={() => open(null)} title={`See all ${online.length} people online`} aria-label={`${extra} more people online`}>+{extra}</button>}
         </div>
       )}
-      <button type="button" className={`people-chat ${panel ? 'on' : ''}`} onClick={() => (panel ? setPanel(null) : open(null))} aria-expanded={!!panel} aria-label={total ? `Chat, ${total} unread` : 'Chat'} title="Chat with colleagues">
-        <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-8l-5 4v-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /></svg>
-        <span>Chat</span>
-        {total > 0 && <span className="people-count">{total > 99 ? '99+' : total}</span>}
+      {/* The chat bubble floats at the bottom right of the page, where people expect it (user request, 24 Nov 2026). */}
+      <button type="button" className={`people-fab ${panel ? 'on' : ''}`} onClick={() => (panel ? setPanel(null) : open(null))} aria-expanded={!!panel} aria-label={total ? `Chat, ${total} unread` : 'Chat'} title="Chat with colleagues">
+        {panel
+          ? <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" /></svg>
+          : <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-8l-5 4v-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /><path d="M8 10h8M8 13h5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>}
+        {total > 0 ? <span className="people-count">{total > 99 ? '99+' : total}</span> : online.length > 0 && !panel ? <i className="people-here" aria-hidden="true" /> : null}
       </button>
 
       {panel && (
