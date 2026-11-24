@@ -6,6 +6,7 @@ import { listDatabases, assertDatabase, refreshPool, defaultDatabase } from '../
 import { getSetting, getNumberSetting } from '../appDb.js';
 import { buildSystem, buildTools, describeTool, executeTool, runHook, runGate } from '../registry.js';
 import { filterDatabases, allowedTableSet, canUseDatabase } from '../access.js';
+import { rulesText } from '../rules.js';
 import { clarifyText, CLARIFY_PREFIX } from '../modules/clarify/index.js';
 import { ownConversation, setConversationDatabase, addMessage, finishMessage, touchConversation, buildHistory, maybeCompact, findRecentAnswer } from '../modules/chats/index.js';
 
@@ -164,7 +165,9 @@ router.post('/', async (req, res) => {
     }
 
     await runHook('beforeRequest', ctx, { messages: history });
-    const system = await buildSystem(ctx, [{ text: BASE_PROMPT }]);
+    // The rules file sits right after the base prompt: stable text, in front of the cached schema block.
+    const rules = rulesText();
+    const system = await buildSystem(ctx, [{ text: BASE_PROMPT }, ...(rules ? [{ text: rules }] : [])]);
     if (summary) system.push({ type: 'text', text: summary }); // after the cached blocks, since it changes per conversation
     const tools = await buildTools(ctx);
 
