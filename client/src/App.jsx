@@ -459,7 +459,7 @@ function ChatApp({ user, tetherUrl, onLogout }) {
                         <StepsBlock message={m} />
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
                         {m.pending && m.content && <span className="cursor" />}
-                        <AnswerMeta message={m} isAdmin={user.role === 'admin'} defaultModel={modelId} />
+                        <AnswerMeta message={m} defaultModel={modelId} />
                         {m.cached && <div className="cached-note">Reused your earlier answer to this exact question{typeof m.cached === 'string' ? ` from ${new Date(m.cached).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}` : ''}. No tokens used.</div>}
                         {MESSAGE_BLOCKS.map((Block, i) => (
                           <Block
