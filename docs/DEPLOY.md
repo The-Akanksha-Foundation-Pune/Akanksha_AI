@@ -30,11 +30,15 @@ hostname instead, set `BASE_PATH=/` and `CLIENT_URL=https://<host>`.
    `deploy/deploy.sh` refuses to run without `SERVE_CLIENT=1` and both Google keys.
 4. **Google sign-in**: add `https://tether.akanksha.org/akanksha-ai/api/modules/auth/google/callback`
    to **Authorised redirect URIs** on the OAuth client.
-5. **Database user**: SELECT on the data databases, full rights on `AI` only.
-6. **nginx**: paste `deploy/nginx-akanksha-ai.conf` into the `tether.akanksha.org` server block,
+5. **Tether card**: set `INTEGRATION_JWT_SECRET` in `.env` to the value of `JWT_SECRET` in
+   `/home/ec2-user/Tether/server/.env`, and in Tether's `server/.env` set
+   `PRISM_URL=https://tether.akanksha.org/akanksha-ai/api/modules/auth/sso`, then restart Tether.
+   Until both are set, the Prism card on Tether answers "PRISM_URL not configured".
+6. **Database user**: SELECT on the data databases, full rights on `AI` only.
+7. **nginx**: paste `deploy/nginx-akanksha-ai.conf` into the `tether.akanksha.org` server block,
    then `sudo nginx -t && sudo systemctl reload nginx`. The block turns buffering off because
    answers are streamed.
-7. **First deploy by hand**: `cd /home/ec2-user/Akanksha_AI && bash deploy/deploy.sh`.
+8. **First deploy by hand**: `cd /home/ec2-user/Akanksha_AI && bash deploy/deploy.sh`.
 
 ## Deploying by hand
 
@@ -145,4 +149,5 @@ Run locally, the smoke test only reads (health checks and refused requests). Do 
 | Answer appears all at once, or stops after a minute | `proxy_buffering off` / `proxy_read_timeout` missing in nginx |
 | Google says redirect_uri_mismatch | the production callback URI (setup step 4) |
 | Signed in, then asked to sign in again | `CLIENT_URL` must be the exact public https address; cookies are `Secure` in production |
+| Prism card on Tether lands on the sign-in page with "could not be checked" | `INTEGRATION_JWT_SECRET` differs from Tether's `JWT_SECRET` |
 | Deploy job waits forever | the runner is offline: `sudo ./svc.sh status` in its folder |

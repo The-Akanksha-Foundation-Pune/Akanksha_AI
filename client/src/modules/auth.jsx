@@ -16,6 +16,12 @@ const SIGNIN_ERRORS = {
   google_state_mismatch: 'The sign-in took too long or was opened in another tab. Please try again.',
   google_not_configured: 'Google sign-in is not set up on this server.',
   google_failed: 'Google sign-in failed. Please try again.',
+  // Arriving from the Prism card on Tether
+  sso_expired: 'The link from Tether has expired. Open Prism from Tether again, or sign in with Google below.',
+  sso_used: 'That link from Tether was already used. Open Prism from Tether again, or sign in with Google below.',
+  sso_invalid: 'The link from Tether could not be checked. Open Prism from Tether again, or sign in with Google below.',
+  sso_not_configured: 'Sign-in from Tether is not set up on this server. Sign in with Google below.',
+  sso_failed: 'Sign-in from Tether failed. Please try again, or sign in with Google below.',
 }
 
 function GoogleMark() {
@@ -35,11 +41,11 @@ export function SignIn({ info, onSignedIn }) {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  // The Google callback sends refused sign-ins back here as /?signin=<reason>.
+  // The Google callback and the Tether hand-off send refused sign-ins back here as /?signin=<reason>.
   useEffect(() => {
     const reason = new URLSearchParams(window.location.search).get('signin')
     if (!reason) return
-    setError(SIGNIN_ERRORS[reason] || 'Google sign-in did not complete. Please try again.')
+    setError(SIGNIN_ERRORS[reason] || 'Sign-in did not complete. Please try again.')
     window.history.replaceState({}, '', window.location.pathname)
   }, [])
 

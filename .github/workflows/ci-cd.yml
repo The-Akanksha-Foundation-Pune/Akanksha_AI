@@ -72,6 +72,8 @@ jobs:
       EMPLOYEE_DB_NAME: none
       ANTHROPIC_API_KEY: ci-not-a-real-key
       JWT_SECRET: ci-not-a-real-secret
+      INTEGRATION_JWT_SECRET: ci-not-tethers-secret
+      CLIENT_URL: http://localhost:5173
       AUTH_MODE: dev
       AUTH_ALLOWED_DOMAIN: example.org
       SUPER_ADMIN_EMAILS: ci-admin@example.org
@@ -101,7 +103,8 @@ jobs:
           echo "$OUT" | grep -q 'up to date'
       # Starts the real server and drives it over HTTP: every module loads, health and the
       # database answer, the API refuses a caller with no session, an invited super admin gets
-      # in and a stranger does not, and the client page is served.
+      # in and a stranger does not, the Tether hand-off accepts only a fresh, correctly signed
+      # token, and the client page is served.
       - name: Smoke test
         run: |
           mkdir -p client/dist && echo '<!doctype html><div id="root"></div>' > client/dist/index.html
