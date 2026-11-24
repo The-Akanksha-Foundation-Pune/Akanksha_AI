@@ -37,6 +37,40 @@ async function enforceVisibility(ctx, sql) {
   }
 }
 
+// The real values of one field, for the clarify module's choices (which academic years, schools, subjects…
+// exist). Same rules as run_sql: the role's visibility is enforced, the statement is read-only, and the run is
+// logged to sql_runs. Returns the first column of each row as text, without blanks or repeats. Answers are kept
+// for ten minutes per database, role and statement, so asking again does not query again.
+const valueCache = new Map();
+const VALUE_CACHE_MS = 10 * 60 * 1000;
+export async function distinctValues(ctx, sql, { max = 12, timeoutMs = 8000 } = {}) {
+  if (!/^\s*(SELECT|WITH)\b/i.test(sql)) throw new Error('options_sql must be a SELECT');
+  await enforceVisibility(ctx, sql);
+  const key = `${ctx.database}|${ctx.user?.role || ''}|${sql}`;
+  const hit = valueCache.get(key);
+  if (hit && Date.now() - hit.at < VALUE_CACHE_MS) return hit.values.slice(0, max);
+  const started = Date.now();
+  let result, error = null;
+  try {
+    result = await runReadOnlySql(ctx.database, sql, { maxRows: 60, timeoutMs });
+  } catch (err) {
+    error = err.message;
+  }
+  appWrite(
+    `INSERT INTO sql_runs (message_id, conversation_id, user_id, database_name, sql_text, tables_used, row_count, truncated, duration_ms, error)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [ctx.messageId, ctx.conversationId, ctx.userId, ctx.database, sql, JSON.stringify(tablesIn(sql)), result?.rowCount ?? null, result?.truncated ? 1 : 0, Date.now() - started, error],
+  );
+  if (error) throw new Error(error);
+  const values = [...new Set(result.rows
+    .map((r) => Object.values(r)[0])
+    .filter((v) => v != null)
+    .map((v) => (v instanceof Date ? v.toISOString().slice(0, 10) : String(v)).replace(/\s+/g, ' ').trim())
+    .filter(Boolean))];
+  valueCache.set(key, { at: Date.now(), values });
+  return values.slice(0, max);
+}
+
 export default {
   name: 'sql',
   order: 10,
