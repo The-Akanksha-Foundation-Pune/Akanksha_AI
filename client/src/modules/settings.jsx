@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 
 // Admin settings: categories on the left, one clean row per setting, a single save bar.
-export default function SettingsPanel({ canEdit, onSaved }) {
+// `only` limits the panel to some groups (each Admin section shows the settings that belong to it);
+// with a single group the category list is left out.
+export default function SettingsPanel({ canEdit, onSaved, only, title = 'Settings', note: about }) {
   const [groups, setGroups] = useState([])
   const [settings, setSettings] = useState([])
   const [group, setGroup] = useState('')
@@ -15,8 +17,9 @@ export default function SettingsPanel({ canEdit, onSaved }) {
       const r = await fetch('/api/modules/admin/settings')
       const d = await r.json()
       if (!r.ok) throw new Error(d.error || 'Could not load settings')
-      setGroups(d.groups); setSettings(d.settings); setEdits({})
-      setGroup((g) => g || d.groups[0])
+      const shown = only ? d.groups.filter((g) => only.includes(g)) : d.groups
+      setGroups(shown); setSettings(d.settings.filter((x) => shown.includes(x.group))); setEdits({})
+      setGroup((g) => (shown.includes(g) ? g : shown[0]))
     } catch (e) { setError(e.message) }
   }
   useEffect(() => { load() }, [])
@@ -32,7 +35,7 @@ export default function SettingsPanel({ canEdit, onSaved }) {
       const r = await fetch('/api/modules/admin/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ values: edits }) })
       const d = await r.json()
       if (!r.ok) throw new Error(d.error || 'Save failed')
-      setSettings(d.settings); setEdits({}); setNote('Saved. Changes apply to the next prompt.')
+      setSettings(d.settings.filter((x) => groups.includes(x.group))); setEdits({}); setNote('Saved. Changes apply to the next prompt.')
       onSaved?.()
     } catch (e) { setError(e.message) } finally { setBusy(false) }
   }
@@ -61,8 +64,8 @@ export default function SettingsPanel({ canEdit, onSaved }) {
     <section className="admin-card settings-card">
       <div className="settings-head">
         <div>
-          <h2>Settings</h2>
-          <p className="note">{canEdit ? 'Changes apply within 30 seconds of saving.' : 'Only a super admin can change settings.'}</p>
+          <h2>{title}</h2>
+          <p className="note">{about ? `${about} ` : ''}{canEdit ? 'Changes apply within 30 seconds of saving.' : 'Only a super admin can change these.'}</p>
         </div>
         {canEdit && (
           <div className="settings-actions">
@@ -73,17 +76,17 @@ export default function SettingsPanel({ canEdit, onSaved }) {
         )}
       </div>
       {error && <div className="error-text small">{error}</div>}
-      <div className="settings-body">
-        <nav className="settings-nav" aria-label="Setting categories">
+      <div className={`settings-body ${groups.length < 2 ? 'single' : ''}`}>
+        {groups.length > 1 && <nav className="settings-nav" aria-label="Setting categories">
           {groups.map((g) => {
             const n = settings.filter((s) => s.group === g && edits[s.key] !== undefined).length
             return <button key={g} type="button" className={`settings-tab ${g === group ? 'on' : ''}`} onClick={() => setGroup(g)}>{g}{n > 0 && <em>{n}</em>}</button>
           })}
-        </nav>
+        </nav>}
         <div className="settings-rows">
           {isQuota ? (
             <>
-              <p className="note">How many prompts each role may send. 0 means unlimited. Days reset at midnight India time; hours are rolling. A person can be given their own limit in the Users table.</p>
+              <p className="note">How many prompts each role may send. 0 means unlimited. Days reset at midnight India time; hours are rolling. One person can be given their own limit in the table below.</p>
               <table className="rows quota-table"><thead><tr><th>Role</th><th>Per day</th><th>Per hour</th></tr></thead><tbody>
                 {rolesInGroup.map((role) => (
                   <tr key={role}>
