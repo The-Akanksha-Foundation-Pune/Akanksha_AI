@@ -176,6 +176,7 @@ const LIMITS = [
   'It cannot tell you about things nobody recorded. If a school did not enter its data, Prism cannot see it.',
   'It is as up to date as the system the data comes from. Something entered today may not show until that system is next refreshed.',
   'It shows only what your role is allowed to see.',
+  'Your questions and Prism\'s answers are saved. The people who run Prism can read them, to check answers and to improve it. Messages you send to a colleague in the chat bubble are not part of this.',
   'It can make mistakes, most often by misunderstanding the question. Treat a surprising number as a reason to ask again, not as a fact.',
 ]
 

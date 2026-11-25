@@ -178,7 +178,9 @@
 .error-text { color: var(--danger); font-size: 13.5px; }
 
 /* ---------- Composer ---------- */
-.composer { padding: 8px 16px 22px; }
+.composer { padding: 8px 16px 12px; }
+.composer-note { max-width: 760px; margin: 8px auto 0; padding: 0 6px; font-size: 11.5px; line-height: 1.4; color: var(--muted); text-align: center; }
+@media (max-width: 900px) { .composer-note { padding-right: 56px; text-align: left; } } /* keeps clear of the chat bubble */
 .composer-inner { max-width: 760px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 12px 10px 18px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 4px 18px rgba(var(--shadow), .06); transition: border-color .12s, box-shadow .12s; }
 .composer-inner:focus-within { border-color: var(--ink); box-shadow: 0 0 0 3px var(--accent-soft), 0 4px 18px rgba(var(--shadow), .06); }
 .composer textarea { width: 100%; border: none; outline: none; background: transparent; resize: none; max-height: 200px; font-size: 16px; line-height: 1.5; padding: 4px 0; }
@@ -497,3 +499,31 @@
 .clarify-option.on { background: var(--accent-soft); border-color: var(--ink); font-weight: 600; }
 .clarify-other { font: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); width: 100%; }
 .clarify-other:focus { outline: none; border-color: var(--ink); }
+
+/* Admin > Questions (super admins): who asked what */
+.q-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.q-filters label { font-size: 12px; color: var(--muted); }
+.q-filters select, .q-filters input[type="search"] { font: inherit; font-size: 13px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); }
+.q-filters input[type="search"] { flex: 1 1 180px; min-width: 140px; }
+.admin-page .q-table { max-height: 70vh; }
+.admin-page table.rows tr.q-open > td { padding: 10px; background: var(--bg, transparent); }
+.q-row { cursor: pointer; }
+.q-row:hover td, .q-row:focus-visible td { background: var(--accent-soft); }
+.q-row.on td { background: var(--accent-soft); }
+.q-row:focus-visible { outline: none; }
+.q-when, .q-model { white-space: nowrap; }
+.q-text { max-width: 520px; }
+.q-preview { font-size: 12px; max-width: 520px; margin-top: 2px; }
+.q-rate { font-size: 13px; }
+.q-pager { display: flex; align-items: center; gap: 10px; }
+.q-pager .action-btn:disabled { opacity: .45; cursor: default; }
+.q-detail { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: var(--surface); display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.q-detail-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; font-size: 13px; }
+.q-block { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.q-label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+details.q-block > summary.q-label { cursor: pointer; display: list-item; }
+.q-question { white-space: pre-wrap; font-size: 14px; }
+.q-answer { font-size: 14px; max-height: 520px; overflow: auto; border-top: 1px solid var(--border); padding-top: 6px; }
+.q-answer table { border-collapse: collapse; font-size: 13px; }
+.q-answer th, .q-answer td { border: 1px solid var(--border); padding: 3px 8px; text-align: left; }
+.q-query pre { margin: 2px 0 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 180px; overflow: auto; }

@@ -6,6 +6,7 @@ import InsightsPanel from './insights.jsx'
 import TableNotesPanel from './tablenotes.jsx'
 import GlossaryAdmin from './glossaryAdmin.jsx'
 import GiveAccess from './access.jsx'
+import QuestionsPanel from './questions.jsx'
 
 const money = (v) => `$${Number(v || 0).toFixed(v >= 10 ? 2 : 4)}`
 const num = (v) => Number(v || 0).toLocaleString()
@@ -19,6 +20,7 @@ const TABS = [
   { id: 'data', label: 'Data access', about: 'Which tables Prism may read at all, and what each role is allowed to see.' },
   { id: 'knowledge', label: 'Knowledge', about: 'What Prism has been taught: approved example queries, definitions, notes about tables and confirmed findings.' },
   { id: 'usage', label: 'Usage detail', about: 'Cost by person and by model, and the slowest and failed queries.' },
+  { id: 'questions', label: 'Questions', about: 'What each person asked Prism and what it answered. Super admins only.', superOnly: true },
   { id: 'settings', label: 'Settings', about: 'Which model answers, how answers behave, and when the Overview shows a warning.' },
 ]
 const TAB_KEY = 'akanksha_ai_admin_tab'
@@ -51,7 +53,9 @@ export default function AdminPage({ user, databases }) {
   const [creditLog, setCreditLog] = useState({ enabled: false, history: [] })
   const [error, setError] = useState('')
   const [rule, setRule] = useState({ role: 'analyst', database_name: '', table_name: '', column_name: '', effect: 'allow' })
-  const [tab, setTab] = useState(() => { try { const t = localStorage.getItem(TAB_KEY); return TABS.some((x) => x.id === t) ? t : 'overview' } catch { return 'overview' } })
+  // a section marked superOnly is listed, and can be opened, only by a super admin (the server enforces it too)
+  const tabs = TABS.filter((x) => !x.superOnly || user.isSuperAdmin)
+  const [tab, setTab] = useState(() => { try { const t = localStorage.getItem(TAB_KEY); return tabs.some((x) => x.id === t) ? t : 'overview' } catch { return 'overview' } })
   const openTab = (id) => { setTab(id); try { localStorage.setItem(TAB_KEY, id) } catch { /* ignore */ } }
 
   const load = async () => {
@@ -125,7 +129,7 @@ export default function AdminPage({ user, databases }) {
   const pending = data.queue.filter((q) => q.status === 'pending')
   const others = data.queue.filter((q) => q.status !== 'pending')
 
-  const current = TABS.find((x) => x.id === tab) || TABS[0]
+  const current = tabs.find((x) => x.id === tab) || tabs[0]
   const badges = { overview: data.alerts?.length || 0, knowledge: pending.length }
   const person = (r) => <span title={r.email}>{r.name || r.email}</span>
 
@@ -133,7 +137,7 @@ export default function AdminPage({ user, databases }) {
     <div className="admin-page">
       <nav className="admin-nav" aria-label="Admin sections">
         <div className="admin-nav-title">Admin</div>
-        {TABS.map((x) => (
+        {tabs.map((x) => (
           <button key={x.id} type="button" className={`admin-nav-btn ${x.id === tab ? 'on' : ''}`} aria-current={x.id === tab ? 'page' : undefined} onClick={() => openTab(x.id)}>
             <span>{x.label}</span>{badges[x.id] > 0 && <em title={x.id === 'overview' ? 'Warnings' : 'Waiting for approval'}>{badges[x.id]}</em>}
           </button>
@@ -282,6 +286,8 @@ export default function AdminPage({ user, databases }) {
             </Section>
           </div>
         )}
+
+        {tab === 'questions' && user.isSuperAdmin && <QuestionsPanel />}
 
         {tab === 'settings' && <SettingsPanel canEdit={user.isSuperAdmin} onSaved={load} only={['Model', 'Answers', 'Alerts']} title="Settings" />}
       </div>
