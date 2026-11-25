@@ -103,6 +103,11 @@ try {
       check('a viewer is not offered the default-database preference', viewerKeys.length > 0 && !viewerKeys.includes('default_database'), viewerKeys.join(','));
       const forced = await post('/api/modules/memory/me', { values: { default_database: 'AFDW' } }, viewerCookie);
       check('a viewer cannot set a default database through the API', forced.status === 403, `status ${forced.status}`);
+      // Who asked what: super admins only.
+      const peek = await get('/api/modules/admin/questions', { Cookie: viewerCookie });
+      check('a viewer cannot read other people\'s questions', peek.status === 403, `status ${peek.status}`);
+      const own = await get('/api/modules/admin/questions?days=1', { Cookie: cookie });
+      check('a super admin can list questions', own.status === 200 && Array.isArray(own.json?.questions), `status ${own.status}`);
       const allowed = await post('/api/modules/memory/me', { values: { answer_style: 'concise' } }, viewerCookie);
       check('a viewer can still save the other preferences', allowed.status === 200, `status ${allowed.status}`);
 

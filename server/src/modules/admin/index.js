@@ -187,4 +187,82 @@ router.post('/scope', requireSuperAdmin, async (req, res) => {
   }
 });
 
+// ---- Who asked what (super admins only; user request, 25 Nov 2026) ----
+// Every question and answer is stored per person in `messages`. These two routes are the only place the app
+// shows one person's questions to someone else, so they are limited to super admins, read-only, and the
+// "What can I ask?" guide tells staff that their questions can be reviewed. Private messages between
+// colleagues (people module) are not included.
+const QUESTIONS_PAGE = 50;
+const QUESTION_OF = `(SELECT q.content FROM messages q
+                       WHERE q.conversation_id = a.conversation_id AND q.role = 'user' AND q.created_at <= a.created_at
+                       ORDER BY q.created_at DESC LIMIT 1)`;
+
+// GET /api/modules/admin/questions?days=7&user=<id>&q=<text>&offset=0
+router.get('/questions', requireSuperAdmin, async (req, res) => {
+  const days = Math.min(Math.max(Number(req.query.days) || 7, 1), 365);
+  const userId = Number(req.query.user) || 0;
+  const search = String(req.query.q || '').trim().slice(0, 100);
+  const offset = Math.max(Number(req.query.offset) || 0, 0);
+  try {
+    const pool = appPool();
+    const where = ["a.role = 'assistant'", 'a.created_at >= NOW() - INTERVAL ? DAY'];
+    const params = [days];
+    if (userId) { where.push('c.user_id = ?'); params.push(userId); }
+    const having = search ? 'HAVING question LIKE ?' : '';
+    if (search) params.push(`%${search.replace(/[\\%_]/g, '\\$&')}%`);
+    const [rows] = await pool.query(
+      `SELECT a.id, a.status, a.created_at, c.database_name, u.id AS user_id, u.email, u.name,
+              ${QUESTION_OF} AS question,
+              LEFT(a.content, 220) AS preview,
+              (SELECT SUBSTRING_INDEX(GROUP_CONCAT(r.model ORDER BY r.id DESC), ',', 1) FROM api_requests r WHERE r.message_id = a.id) AS model,
+              (SELECT SUBSTRING_INDEX(GROUP_CONCAT(COALESCE(r.effort, '') ORDER BY r.id DESC), ',', 1) FROM api_requests r WHERE r.message_id = a.id) AS effort,
+              (SELECT SUM(r.cost_usd) FROM api_requests r WHERE r.message_id = a.id) AS cost_usd,
+              (SELECT COUNT(*) FROM sql_runs s WHERE s.message_id = a.id) AS queries,
+              (SELECT f.rating FROM feedback f WHERE f.message_id = a.id ORDER BY f.id DESC LIMIT 1) AS rating
+         FROM messages a
+         JOIN conversations c ON c.id = a.conversation_id
+         JOIN users u ON u.id = c.user_id
+        WHERE ${where.join(' AND ')}
+        ${having}
+        ORDER BY a.created_at DESC
+        LIMIT ${QUESTIONS_PAGE + 1} OFFSET ?`,
+      [...params, offset],
+    );
+    const [people] = await pool.query(
+      `SELECT u.id, u.email, u.name, COUNT(*) AS answers
+         FROM messages a JOIN conversations c ON c.id = a.conversation_id JOIN users u ON u.id = c.user_id
+        WHERE a.role = 'assistant' AND a.created_at >= NOW() - INTERVAL ? DAY
+        GROUP BY u.id, u.email, u.name ORDER BY COALESCE(u.name, u.email)`,
+      [days],
+    );
+    res.json({
+      days, offset, pageSize: QUESTIONS_PAGE, more: rows.length > QUESTIONS_PAGE,
+      people,
+      questions: rows.slice(0, QUESTIONS_PAGE).map((r) => ({ ...r, cost_usd: r.cost_usd == null ? null : Number(r.cost_usd) })),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/modules/admin/questions/:id -> the whole question and answer, with the queries that were run
+router.get('/questions/:id', requireSuperAdmin, async (req, res) => {
+  try {
+    const pool = appPool();
+    const [[a]] = await pool.query(
+      `SELECT a.id, a.content, a.status, a.error, a.created_at, c.database_name, c.title, u.email, u.name,
+              ${QUESTION_OF} AS question
+         FROM messages a JOIN conversations c ON c.id = a.conversation_id JOIN users u ON u.id = c.user_id
+        WHERE a.id = ? AND a.role = 'assistant'`,
+      [String(req.params.id)],
+    );
+    if (!a) return res.status(404).json({ error: 'No such answer' });
+    const [queries] = await pool.query('SELECT id, database_name, sql_text, row_count, duration_ms, error FROM sql_runs WHERE message_id = ? ORDER BY id', [a.id]);
+    const [calls] = await pool.query('SELECT model, effort, round_no, stop_reason, input_tokens, cache_read_tokens, output_tokens, cost_usd, latency_ms, error FROM api_requests WHERE message_id = ? ORDER BY id', [a.id]);
+    res.json({ answer: a, queries, calls });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default { name: 'admin', order: 95, routes: router };
