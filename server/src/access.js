@@ -72,13 +72,26 @@ export async function scopeFor(database) {
   try { const list = JSON.parse(raw); return Array.isArray(list) ? new Set(list) : null; } catch { return null; }
 }
 
-// Tables the model may use for this user in this database: scope ∩ role visibility. null = all.
+// Tables of another app that hold its private workings, not Akanksha's records: people's messages to each other,
+// sign-in sessions, who is online, the audit trail, the admin list. Nobody can ask Prism about them, admins
+// included, whether the database is the chat's own or reached through a link.
+const PRIVATE_TABLES = {
+  alumni_connect: new Set([
+    'alumni_chat_message', 'alumni_team_message', 'alumni_team_read', 'alumni_presence',
+    'alumni_connect_session', 'alumni_audit_log', 'alumni_admin_user', 'alumni_connect_migration',
+  ]),
+};
+
+// Tables the model may use for this user in this database: scope ∩ role visibility, minus private tables. null = all.
 export async function allowedTableSet(user, database, allTableNames) {
   const scope = await scopeFor(database);
   const role = await visibleTableSet(user, database, allTableNames);
-  if (!scope && !role) return null;
-  const base = scope ? allTableNames.filter((t) => scope.has(t)) : allTableNames;
-  return new Set(role ? base.filter((t) => role.has(t)) : base);
+  const priv = PRIVATE_TABLES[database];
+  if (!scope && !role && !priv) return null;
+  let base = scope ? allTableNames.filter((t) => scope.has(t)) : allTableNames;
+  if (role) base = base.filter((t) => role.has(t));
+  if (priv) base = base.filter((t) => !priv.has(t));
+  return new Set(base);
 }
 
 // Columns hidden from this user's role in one database, as a Set of "table.column" in lower case.
@@ -90,13 +103,13 @@ export async function hiddenColumns(user, database) {
 
 // ---- Linked databases: the one case where a query may read a second database. ----
 // A chat still has one database, but some topics are recorded in two (rule in server/prompts/RULES.md: alumni
-// questions look at akanksha_production and akanksha). For a database listed here, run_sql also accepts
+// questions look at akanksha_production and alumni_connect). For a database listed here, run_sql also accepts
 // `other.table` references to its linked databases, and the schema block describes them. Every other
 // cross-database reference stays refused. The person's own access rules still apply to the linked database:
 // one they cannot see is left out, and its hidden tables and columns stay hidden.
 const LINKED_DATABASES = {
-  akanksha_production: ['akanksha'],
-  akanksha: ['akanksha_production'],
+  akanksha_production: ['alumni_connect'],
+  alumni_connect: ['akanksha_production'],
 };
 
 export async function linkedDatabases(user, database) {
