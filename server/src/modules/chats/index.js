@@ -113,27 +113,28 @@ export async function maybeCompact(conversationId, historyTurns) {
 }
 
 // An identical question by the same person on the same database, answered recently and not thumbed down.
-export async function findRecentAnswer(userId, database, question, hours) {
+// The answer must be the direct reply to that question: an assistant row after it with no other question in
+// between. (Until 25 Nov 2026 this took the latest answer in the same chat, so a question followed by other
+// questions got the last one's answer back.) `notBefore` leaves out answers written before the rules file last
+// changed, so a corrected rule is not hidden behind an old answer.
+export async function findRecentAnswer(userId, database, question, hours, notBefore = null) {
   if (!hours) return null;
   const [rows] = await appPool().query(
     `SELECT a.id, a.content, a.created_at
        FROM messages u
        JOIN conversations c ON c.id = u.conversation_id
-       JOIN messages a ON a.conversation_id = u.conversation_id AND a.role = 'assistant' AND a.status = 'complete' AND a.created_at > u.created_at
+       JOIN messages a ON a.conversation_id = u.conversation_id AND a.role = 'assistant' AND a.status = 'complete' AND a.created_at >= u.created_at
        LEFT JOIN feedback f ON f.message_id = a.id AND f.rating = -1
       WHERE c.user_id = ? AND c.database_name = ? AND u.role = 'user' AND LOWER(TRIM(u.content)) = LOWER(TRIM(?))
-        AND a.created_at >= NOW() - INTERVAL ? HOUR AND f.id IS NULL
+        AND a.created_at >= NOW() - INTERVAL ? HOUR AND a.created_at >= ? AND f.id IS NULL
+        AND NOT EXISTS (SELECT 1 FROM messages x
+                         WHERE x.conversation_id = u.conversation_id AND x.role = 'user' AND x.id <> u.id
+                           AND x.created_at >= u.created_at AND x.created_at <= a.created_at)
       ORDER BY a.created_at DESC LIMIT 1`,
-    [userId, database, question, hours],
+    [userId, database, question, hours, notBefore || new Date(0)],
   );
   const hit = rows[0];
-  if (!hit || !hit.content?.trim()) return null;
-  // make sure the assistant row is the immediate reply to that user row (no other user turn in between)
-  const [[between]] = await appPool().query(
-    "SELECT COUNT(*) AS n FROM messages WHERE conversation_id = (SELECT conversation_id FROM messages WHERE id = ?) AND role = 'user' AND created_at < ? AND LOWER(TRIM(content)) <> LOWER(TRIM(?)) AND created_at > (SELECT MAX(created_at) FROM messages WHERE role = 'user' AND conversation_id = (SELECT conversation_id FROM messages WHERE id = ?) AND created_at < ?)",
-    [hit.id, hit.created_at, question, hit.id, hit.created_at],
-  );
-  return between.n ? null : hit;
+  return hit && hit.content?.trim() ? hit : null;
 }
 
 const router = Router();

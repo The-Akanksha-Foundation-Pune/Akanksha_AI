@@ -21,3 +21,9 @@ export function rulesText() {
   }
   return cached.text;
 }
+
+// When the rules file last changed (null when there is none). Answers saved before this are not reused.
+export function rulesChangedAt() {
+  rulesText();
+  return cached.mtime ? new Date(cached.mtime) : null;
+}
