@@ -87,3 +87,20 @@ export async function hiddenColumns(user, database) {
   const rules = (await allRules()).filter((r) => r.role === user.role && r.database_name === database && columnRule(r) && r.effect === 'deny');
   return new Set(rules.map((r) => `${r.table_name}.${r.column_name}`.toLowerCase()));
 }
+
+// ---- Linked databases: the one case where a query may read a second database. ----
+// A chat still has one database, but some topics are recorded in two (rule in server/prompts/RULES.md: alumni
+// questions look at akanksha_production and akanksha). For a database listed here, run_sql also accepts
+// `other.table` references to its linked databases, and the schema block describes them. Every other
+// cross-database reference stays refused. The person's own access rules still apply to the linked database:
+// one they cannot see is left out, and its hidden tables and columns stay hidden.
+const LINKED_DATABASES = {
+  akanksha_production: ['akanksha'],
+  akanksha: ['akanksha_production'],
+};
+
+export async function linkedDatabases(user, database) {
+  const out = [];
+  for (const name of LINKED_DATABASES[database] || []) if (await canUseDatabase(user, name)) out.push(name);
+  return out;
+}
