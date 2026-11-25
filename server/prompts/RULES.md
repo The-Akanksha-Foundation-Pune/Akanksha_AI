@@ -32,6 +32,24 @@ your own judgement. If a rule and a question seem to conflict, follow the rule a
   - If the database in use is neither of these, do not run a query for an alumni question. Ask the
     person to ask it again in a new chat so that the alumni records are opened.
 
+- **RAZ and reading.** Any question about RAZ, reading, reading levels, reading accuracy or reading
+  comprehension is answered from the `AFDW` database, from these two tables:
+  - `raz_assessment_data`: one row per student per RAZ assessment, with the level assessed, the
+    expected level, errors and words read, the accuracy and comprehension scores, the verdict and the
+    intervention flag.
+  - `raz_assessment_comprehension`: the marks for each comprehension question of an assessment. Use it
+    whenever the question is about comprehension in any detail (which questions or skills are weak),
+    joined to `raz_assessment_data` on `student_id`, `assessment_id` and `generated_id`.
+  - The small `raz_*` lookup tables in `AFDW` (expected levels, question labels, mapping) may be joined
+    to explain these two. Never answer from `raz_assessment_data_backup_20260910`.
+  - Do not answer a reading question from the general assessment tables (`full_assessment_data`,
+    `student_full_assessment_data`), and never from the `raz_*` tables in `consultant_mgmt`: those
+    are empty copies.
+  - Almost all RAZ records are for 2026-2027. For an earlier year, check what exists and say plainly
+    that RAZ reading records are missing or very few for it.
+  - If the database in use is not `AFDW`, do not run a query for a RAZ or reading question. Ask the
+    person to ask it again in a new chat.
+
 ## Say what the records cover, and what they do not
 
 The records are not complete for every school, year and topic. A programme or a system usually started
