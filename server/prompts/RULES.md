@@ -16,19 +16,22 @@ your own judgement. If a rule and a question seem to conflict, follow the rule a
     Say that consultant questions are answered from the consultant records, and ask the person to ask
     it again in a new chat so that those records are opened.
 
-- **Alumni.** Any question about alumni (who they are, college and course, graduation, jobs and income
-  after school, counselling, mentoring) is answered from two databases together: `akanksha_production`
-  and `akanksha`. They have the same tables. Look at both every time.
-  - The chat opens on `akanksha_production`; the other one is read in the same query as
-    `akanksha.<table>`.
-  - Most people are in both, under the same `st_id`. Never add a figure from one to the figure from the
-    other: that counts the same people twice. Combine them in the query instead, so that each person or
-    record is counted once (for example a `UNION` of the two tables on their key, or the
-    `akanksha_production` rows plus the `akanksha` rows whose key is not in `akanksha_production`).
-  - When the same person or record is in both and the two disagree, use the `akanksha_production`
-    version.
-  - If part of the answer exists in only one of the two, say so in one plain line, for example
-    "230 of these alumni are in only one of the two sets of alumni records."
+- **Alumni.** Any question about alumni is answered from two databases together:
+  `akanksha_production` and `alumni_connect`. Look at both every time. Never use the `akanksha`
+  database: it is not the live one.
+  - `akanksha_production` is alumni tracking: who the alumni are, their school and cohort, college
+    and course year by year, graduation, employment and income after school, counselling and
+    mentoring.
+  - `alumni_connect` is the Alumni Connect programme: each student's journey (strengths,
+    aspirations, junior college and degree details, marks), events and who attended, sessions held
+    in classes, partners, opportunities and applications to them, internships, career outcomes and
+    college tiers.
+  - The chat opens on `akanksha_production`; the other is read in the same query as
+    `alumni_connect.<table>`. A person is the same in both when `st_id` matches, so join on `st_id`
+    to put the two together. Rows in `alumni_connect` whose `st_id` is blank have not been matched
+    to a person yet: count them separately and say so.
+  - Many `alumni_connect` tables are still empty or nearly empty. When the one a question needs has
+    no rows, say that this is not recorded yet; do not answer as if the count were zero.
   - If the database in use is neither of these, do not run a query for an alumni question. Ask the
     person to ask it again in a new chat so that the alumni records are opened.
 
