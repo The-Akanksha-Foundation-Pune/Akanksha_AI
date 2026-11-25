@@ -539,7 +539,7 @@ function ChatApp({ user, tetherUrl, onLogout }) {
               )}
             </div>
           </div>
-          <p className="composer-note">Prism is an AI and can make mistakes. Cross-check its answers before you rely on them. Your prompts may be used by the Akanksha IT Team for LLM inferencing.</p>
+          <p className="composer-note">Prism is AI-powered and can make mistakes. Cross-check its answers before you rely on them. Your prompts may be used by the Akanksha IT Team for LLM inferencing.</p>
         </footer>
         </>)}
       </main>
