@@ -29,7 +29,7 @@ export default function GlossaryAdmin({ canEdit, databases }) {
   return (
     <section className="admin-card">
       <h2>Glossary</h2>
-      <p className="note">Agreed meanings of terms like "active student" or "completed visit". Claude applies them exactly, so every answer uses the same definition.</p>
+      <p className="note">Agreed meanings of terms like "active student" or "completed visit". Prism applies them exactly, so every answer uses the same definition.</p>
       <div className="db-chips">
         {databases.map((d) => <button key={d.name} type="button" className={`db-chip ${d.name === db ? 'active' : ''}`} onClick={() => setDb(d.name)}>{d.name}</button>)}
       </div>

@@ -31,7 +31,7 @@ export default function TableNotesPanel({ canEdit, databases }) {
   return (
     <section className="admin-card">
       <h2>Table notes</h2>
-      <p className="note">What the schema cannot say: how often a table refreshes, which rows to ignore, what a status really means. Claude sees the note right under that table.</p>
+      <p className="note">What the schema cannot say: how often a table refreshes, which rows to ignore, what a status really means. Prism sees the note right under that table.</p>
       {notes.length > 0 && (
         <div className="admin-table-wrap"><table className="rows">
           <thead><tr><th>Database</th><th>Table</th><th>Note</th><th></th></tr></thead>

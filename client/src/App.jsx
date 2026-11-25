@@ -340,7 +340,7 @@ function ChatApp({ user, tetherUrl, onLogout }) {
             if (payload.cached) patchAssistant({ cached: payload.cachedAt || true })
             if (payload.model) patchAssistant({ model: payload.model, route: payload.route, meta: { model: payload.model, route: payload.route, effort: payload.effort, costUsd: payload.costUsd, latencyMs: payload.latencyMs, rounds: payload.rounds } })
             if (payload.stop_reason === 'max_tokens') patchAssistant({ cutOff: true })
-            if (payload.refusal) patchAssistant({ error: `Claude declined this request (${payload.refusal.category || 'policy'}).` })
+            if (payload.refusal) patchAssistant({ error: `Prism declined this request (${payload.refusal.category || 'policy'}).` })
           }
         }
       }
@@ -442,7 +442,7 @@ function ChatApp({ user, tetherUrl, onLogout }) {
           {activeMessages.length === 0 ? (
             <div className="empty">
               <h1>Ask about your data</h1>
-              <p>{autoDb ? 'Claude picks the right database for your question and runs read-only queries to answer.' : `Claude can see every table in ${dbName || 'the database'} and runs read-only queries to answer.`}</p>
+              <p>{autoDb ? 'Prism picks the right database for your question and runs read-only queries to answer.' : `Prism can see every table in ${dbName || 'the database'} and runs read-only queries to answer.`}</p>
               <p className="empty-guide"><button type="button" className="link-btn" onClick={() => setGuideOpen(true)}>See everything you can ask about →</button></p>
               <div className="suggestions">
                 {SUGGESTIONS.map((s) => (
