@@ -6,7 +6,7 @@ import { listDatabases, assertDatabase, refreshPool, defaultDatabase } from '../
 import { getSetting, getNumberSetting } from '../appDb.js';
 import { buildSystem, buildTools, describeTool, executeTool, runHook, runGate } from '../registry.js';
 import { filterDatabases, allowedTableSet, canUseDatabase } from '../access.js';
-import { rulesText } from '../rules.js';
+import { rulesText, rulesChangedAt } from '../rules.js';
 import { clarifyText, CLARIFY_PREFIX } from '../modules/clarify/index.js';
 import { ownConversation, setConversationDatabase, addMessage, finishMessage, touchConversation, buildHistory, maybeCompact, findRecentAnswer } from '../modules/chats/index.js';
 
@@ -143,7 +143,7 @@ router.post('/', async (req, res) => {
       // Identical recent question from the same person: reuse the earlier answer, no model call.
       if (before.totalTurns === 0) {
         const hours = await getNumberSetting('answers.cache_hours', 24);
-        const hit = await findRecentAnswer(req.user.id, database, question, hours).catch(() => null);
+        const hit = await findRecentAnswer(req.user.id, database, question, hours, rulesChangedAt()).catch(() => null);
         if (hit && !hit.content.includes(CLARIFY_PREFIX)) { // a stored clarifying turn is not an answer
           sendEvent(res, 'text', { text: hit.content });
           sendEvent(res, 'done', { database, stop_reason: 'end_turn', refusal: null, model: null, cached: true, cachedAt: hit.created_at, usage: null, rounds: 0, costUsd: 0, quota: ctx.quota || null, credits: ctx.credits || null });

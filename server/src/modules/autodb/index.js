@@ -20,8 +20,8 @@ const catalogs = new Map(); // role -> { at, names, text }
 // 16 Nov 2026; the rest inferred the same day from table names, row counts and last-update times. Inferred lines are
 // a best reading, not confirmed by the data owners: correct them here when one is wrong.
 const DB_HINTS = {
-  AFDW: 'main data warehouse and the current source for schools, students, enrolment, attendance and assessments (BOY/MOY/EOY, RAZ); attendance covers 2023-24 onwards; use it for any school or student question about those years or with no year given; its consultant_* tables are old copies, never use it for consultant questions',
-  tether_forms: 'IT visit forms submitted by the technology team, plus the employees list (HR master: department, designation, joining date, manager)',
+  AFDW: 'main data warehouse and the current source for schools, students, enrolment, attendance and assessments (BOY/MOY/EOY, RAZ), and for employees and staff (headcount, joiners, leavers, attrition); attendance covers 2023-24 onwards; use it for any school or student question about those years or with no year given; its consultant_* tables are old copies, never use it for consultant questions',
+  tether_forms: 'IT visit forms submitted by the technology team; its employees view is only a lookup for those forms, so employee, staff and attrition questions go to AFDW',
   Netsuite: 'historical student and attendance records from 2003-04 to 2023-24; use it only for attendance or student questions about academic years before 2023-24',
   akanksha_production: 'live alumni tracking, and the database every alumni question goes to (it also reads the akanksha database): alumni profiles, college and course by year, graduation, employment and income after school; no school assessments or attendance',
   akanksha: 'second set of the alumni tracking records, with some alumni that akanksha_production does not have; alumni questions still go to akanksha_production, which reads this one as well',

@@ -50,6 +50,36 @@ your own judgement. If a rule and a question seem to conflict, follow the rule a
   - If the database in use is not `AFDW`, do not run a query for a RAZ or reading question. Ask the
     person to ask it again in a new chat.
 
+- **Employees, staff and attrition.** Any question about employees or staff is answered from the
+  `employees` table in the `AFDW` database. It is the staff list: one row per person, with
+  department, designation, location and school, cost centre, category, reporting manager, date of
+  joining, confirmation date and status. Use it for headcount, who works where, joiners, tenure,
+  probation and confirmation, and reporting lines.
+  - `employees` holds **no exit information**: its `relieving_date` is blank for every person and its
+    status is only `Confirmed` or `On Probation`. So for leavers, exit dates and attrition, and only
+    for those, also read `historical_employees` in `AFDW`. It has the same columns and holds everyone
+    who has ever been on staff, with the status and relieving date of those who left. Join the two on
+    `employee_code`. Never tell the person that exit dates do not exist without looking there, and
+    say in one plain line that the exit dates came from the staff history, not the staff list.
+  - What `employee_status` in `historical_employees` means: `Relieved`, `Absconding` and
+    `Terminated` have left. `Exit Initiated` is serving notice: count the person as having left only
+    once the relieving date has passed. `Not Joining` and `Pending` never joined: leave them out.
+  - The dates are stored as text. `relieving_date` is written like `05-Nov-2026`: read it with
+    `STR_TO_DATE(relieving_date, '%d-%b-%Y')`. `date_of_joining` and `confirmation_date` are mostly
+    `2026-11-05` and sometimes `05-Nov-2026`. Convert a date before you compare, sort or take the
+    earliest or latest: on the raw text those give wrong answers. A blank date is an empty string,
+    not NULL.
+  - Exits are recorded from December 2020. Do not report attrition for an earlier period; say it is
+    not recorded.
+  - "Exited but still showing as active" (in Qandle, the HR system, or the staff list) means people
+    who are in `employees` while `historical_employees` shows they have left. Never use
+    `qandle_users`: it holds two test rows.
+  - An attrition rate is the people who left in the period divided by the average of the headcount at
+    its start and its end. Always state the exact period you used.
+  - Do not answer these questions from the employee tables in `tether_forms`, `Finance`,
+    `fams_mysql_dev` or `consultant_mgmt`. If the database in use is not `AFDW`, ask the person to
+    ask again in a new chat.
+
 ## Say what the records cover, and what they do not
 
 The records are not complete for every school, year and topic. A programme or a system usually started
