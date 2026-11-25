@@ -49,7 +49,7 @@ export default function ScopePanel({ canEdit, databases }) {
       <div className="settings-head">
         <div>
           <h2>Tables the model may query</h2>
-          <p className="note">Unticked tables are left out of the schema Claude sees and refused if a query names them. Applies to every role. New tables are included until you untick them.</p>
+          <p className="note">Unticked tables are left out of the schema Prism sees and refused if a query names them. Applies to every role. New tables are included until you untick them.</p>
         </div>
         {canEdit && (
           <div className="settings-actions">
