@@ -95,8 +95,22 @@ export default {
     if (!ctx.user) return [];
     const m = await memoryFor(ctx.user.id);
     const lines = [];
-    if (m.answer_style === 'concise') lines.push('This user wants concise answers: the figures and one line of context, no explanation unless asked.');
-    if (m.answer_style === 'detailed') lines.push('This user wants detailed answers: explain how the figures were computed and note caveats.');
+    // The style lines say outright that they replace the standing "answer briefly" instruction in the sql block.
+    // Before 25 Nov 2026 "detailed" was one soft sentence, and that instruction won: answers barely changed.
+    if (m.answer_style === 'concise') {
+      lines.push('This person has chosen CONCISE answers. Give the figure or the small table asked for and at most one line of context. No method, no observations and no caveats unless a caveat changes what the figure means.');
+    }
+    if (m.answer_style === 'detailed') {
+      lines.push([
+        'This person has chosen DETAILED answers. This replaces the instruction to answer briefly: a short answer is the wrong answer for them. For every answer that comes from the records, write all of these parts, in this order, each under a short bold heading:',
+        '1. The answer: the headline figure or finding in one or two sentences.',
+        '2. The breakdown: a table that splits the answer along the dimension that fits the question (school, city, grade, subject, department, month, year…), showing every group, not just the top few. If the question asked for a single figure, run one more query to get this breakdown. If the table is long, use show_table.',
+        '3. What stands out: three to six points with their figures: the highest and lowest groups, the biggest changes, anything unusual, and how the groups compare with the overall figure.',
+        '4. How this was worked out: in plain words, what was counted and what was left out, the exact period, any definition you applied (for example what counts as "active" or "left"), and how any rate or average was calculated.',
+        '5. What the records cover and what to keep in mind: which schools, years or groups have no records, small groups whose figures swing easily, and anything that could make the figure misleading.',
+        'Keep every part factual and drawn from query results: no padding, no repeating the question, no recommendations unless asked, and still no table or column names. An answer that needs no query (a greeting, an out-of-scope question, a clarifying question) stays short.',
+      ].join('\n'));
+    }
     if (m.notes) lines.push(`Notes this user asked you to keep in mind: ${m.notes}`);
     return lines.length ? [{ text: 'About the person asking:\n' + lines.join('\n'), cache: true }] : [];
   },
