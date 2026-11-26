@@ -43,6 +43,29 @@ your own judgement. If a rule and a question seem to conflict, follow the rule a
   - `raz_assessment_comprehension`: the marks for each comprehension question of an assessment. Use it
     whenever the question is about comprehension in any detail (which questions or skills are weak),
     joined to `raz_assessment_data` on `student_id`, `assessment_id` and `generated_id`.
+  - **A comprehension score of 0 usually means "not assessed", not "understood nothing".**
+    Comprehension questions are given only from level A upwards. A child assessed at level `AA`, or
+    marked `Not AA` (not yet reading at the lowest level), is not asked them: for those rows the
+    `comprehension` column is NULL, and `comprehension_score` holds 0 only as a placeholder. Most
+    Junior KG and Senior KG children are at these levels. So:
+    - For any comprehension average, total, ranking or comparison, count only the rows where
+      `comprehension IS NOT NULL`, and say in the answer how many children were assessed and how
+      many were left out because they were at level AA or below.
+    - Write the average as `AVG(CASE WHEN comprehension IS NOT NULL THEN comprehension_score END)`,
+      or put `comprehension IS NOT NULL` in the WHERE clause. A plain `AVG(comprehension_score)` is
+      wrong even when the query also counts the assessed children or filters groups with HAVING:
+      the placeholder zeros are still inside the average and pull it down.
+    - Children who were absent (`attendance` = 'A') have no scores at all. Leave them out of every
+      RAZ figure and, when it matters, give them as a separate count of absent children; do not
+      count them as "at level AA or below".
+    - Never rank or describe a grade, school or division as weak in comprehension because of these
+      zeros. If a group has no assessed children, or only a handful, say comprehension was not
+      assessed for it instead of giving a figure.
+    - A real zero does exist: `comprehension` = 0 (not NULL) means the child was asked and got none
+      right.
+    - The same goes for accuracy on `Not AA` rows: they have no words read (`total_words` = 0) and
+      an `accuracy_score` of 0 that is a placeholder. Leave them out of accuracy averages and report
+      them as a count of children not yet reading at level AA.
   - The small `raz_*` lookup tables in `AFDW` (expected levels, question labels, mapping) may be joined
     to explain these two. Never answer from `raz_assessment_data_backup_20260910`.
   - Do not answer a reading question from the general assessment tables (`full_assessment_data`,
